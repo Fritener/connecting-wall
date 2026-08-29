@@ -1,0 +1,24 @@
+# Render blueprint — creates the web service and its database together.
+# Render dashboard → New → Blueprint → point at this repo.
+
+services:
+  - type: web
+    name: connecting-wall
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: connecting-wall-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: connecting-wall-db
+    plan: free
+    databaseName: connecting_wall
+    user: connecting_wall

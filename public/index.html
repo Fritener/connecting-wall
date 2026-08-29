@@ -1,0 +1,1954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Sixteen items, four hidden connections. Play a random wall, build your own, or share one by link.">
+<meta property="og:title" content="Connecting Wall">
+<meta property="og:description" content="Sixteen items, four hidden connections. Play a random wall, build your own, or share one by link.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%A7%B1%3C/text%3E%3C/svg%3E">
+<title>Connecting Wall</title>
+<link id="font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style id="app-style">
+  :root{
+    --stone:#EAEAE1;
+    --paper:#FAFAF7;
+    --paper-2:#F1F0E9;
+    --ink:#22252A;
+    --ink-soft:#5A5F66;
+    --ink-faint:#8A8F96;
+    --line:#D7D5C9;
+    --teal:#1F6F6B;
+    --teal-strong:#17524F;
+    --teal-tint:#E4F0EE;
+    --sage:#6E8F4E;
+    --sage-tint:#EBF1E1;
+    --gold:#B8842A;
+    --gold-tint:#F6ECD8;
+    --slate:#3E6E96;
+    --slate-tint:#E4EEF5;
+    --brick:#AB4B39;
+    --brick-tint:#F5E4DF;
+    --shadow: 0 1px 0 rgba(34,37,42,.06);
+    --focus: 0 0 0 3px rgba(31,111,107,.35);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --stone:#1B1D20;
+      --paper:#242629;
+      --paper-2:#2B2D30;
+      --ink:#ECEDE9;
+      --ink-soft:#AFB3B8;
+      --ink-faint:#7D8186;
+      --line:#3A3C3E;
+      --teal:#4CB0A8;
+      --teal-strong:#6FC9C1;
+      --teal-tint:#1E3634;
+      --sage:#9AC172;
+      --sage-tint:#26321F;
+      --gold:#E0AC4C;
+      --gold-tint:#3A2E1A;
+      --slate:#79ADD6;
+      --slate-tint:#1F303E;
+      --brick:#E08165;
+      --brick-tint:#3B231E;
+      --shadow: 0 1px 0 rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --stone:#1B1D20;
+    --paper:#242629;
+    --paper-2:#2B2D30;
+    --ink:#ECEDE9;
+    --ink-soft:#AFB3B8;
+    --ink-faint:#7D8186;
+    --line:#3A3C3E;
+    --teal:#4CB0A8;
+    --teal-strong:#6FC9C1;
+    --teal-tint:#1E3634;
+    --sage:#9AC172;
+    --sage-tint:#26321F;
+    --gold:#E0AC4C;
+    --gold-tint:#3A2E1A;
+    --slate:#79ADD6;
+    --slate-tint:#1F303E;
+    --brick:#E08165;
+    --brick-tint:#3B231E;
+    --shadow: 0 1px 0 rgba(0,0,0,.4);
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(180deg, transparent 0 47px, var(--line) 47px 48px),
+      repeating-linear-gradient(90deg, transparent 0 71px, var(--line) 71px 72px),
+      var(--stone);
+    background-blend-mode: normal;
+    color:var(--ink);
+    font-family:'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3{ text-wrap:balance; margin:0; }
+  .mono{ font-family:'IBM Plex Mono','SFMono-Regular',monospace; font-variant-numeric:tabular-nums; }
+  button{ font-family:inherit; }
+  a{ color:var(--teal); }
+  :focus-visible{ outline:none; box-shadow:var(--focus); border-radius:6px; }
+  button, .pill, .action-tile, [role="button"], input[type="text"]{
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  }
+
+  .shell{ max-width:760px; margin:0 auto; padding:28px 20px 80px; }
+
+  .topbar{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
+  .wordmark{ display:flex; align-items:baseline; gap:10px; cursor:pointer; background:none; border:none; padding:0; }
+  .wordmark .brick-icon{ width:22px; height:22px; display:inline-block; position:relative; top:2px; }
+  .wordmark h1{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:900;
+    font-size:34px;
+    letter-spacing:.2px;
+    line-height:1;
+    color:var(--ink);
+  }
+  .wordmark .tag{ font-size:13px; color:var(--ink-soft); font-style:italic; }
+  nav.pills{ display:flex; gap:6px; }
+  .pill{
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+    padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .pill:hover{ border-color:var(--teal); color:var(--ink); }
+  .pill[aria-current="true"]{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+
+  .card{
+    background:var(--paper); border:1px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow);
+  }
+
+  /* ---------- HOME ---------- */
+  .hero{ padding:6px 2px 30px; }
+  .hero p.lede{ max-width:52ch; color:var(--ink-soft); font-size:16px; line-height:1.55; margin:10px 0 0; }
+  .actions{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:26px; }
+  @media (max-width:620px){ .actions{ grid-template-columns:1fr; } }
+  .action-tile{
+    text-align:left; cursor:pointer; padding:20px 18px; border-radius:10px;
+    border:1px solid var(--line); background:var(--paper);
+    display:flex; flex-direction:column; gap:8px; min-height:150px;
+    box-shadow:var(--shadow);
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .action-tile:hover{ transform:translateY(-2px); border-color:var(--teal); }
+  .action-tile.static{ cursor:default; }
+  .action-tile.static:hover{ transform:none; border-color:var(--line); }
+  .diff-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:4px; }
+  .action-tile .glyph{ font-family:'Big Shoulders Display',sans-serif; font-weight:800; font-size:26px; color:var(--teal); line-height:1; }
+  .action-tile h3{ font-size:17px; font-weight:700; }
+  .action-tile p{ margin:0; font-size:13px; color:var(--ink-soft); line-height:1.5; }
+  .action-tile .count{ margin-top:auto; font-size:12px; color:var(--ink-faint); }
+
+  .code-box{ margin-top:30px; padding:18px; }
+  .timer-box{ margin-top:22px; padding:18px; }
+  .timer-box h3{ font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700; margin-bottom:10px; }
+  .timer-box .form-note{ margin-top:10px; }
+  .code-box h3{ font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700; margin-bottom:10px; }
+  .code-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .code-row input{ flex:1; min-width:180px; }
+
+  /* ---------- FORM ELEMENTS ---------- */
+  input[type="text"]{
+    background:var(--paper-2); border:1px solid var(--line); color:var(--ink);
+    border-radius:7px; padding:9px 11px; font-size:14px; width:100%;
+  }
+  input[type="text"]::placeholder{ color:var(--ink-faint); }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    border-radius:8px; border:1px solid transparent; padding:10px 18px;
+    font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+  .btn-primary{ background:var(--teal); color:#fff; }
+  .btn-primary:hover{ background:var(--teal-strong); }
+  .btn-primary:disabled{ background:var(--line); color:var(--ink-faint); cursor:not-allowed; }
+  .btn-ghost{ background:transparent; border-color:var(--line); color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--teal); color:var(--teal); }
+  .btn-danger{ background:transparent; border-color:var(--line); color:var(--brick); }
+  .btn-danger:hover{ border-color:var(--brick); background:var(--brick-tint); }
+  .btn-small{ padding:6px 12px; font-size:12.5px; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+  /* ---------- BUILD ---------- */
+  .view-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  .view-header h2{ font-family:'Big Shoulders Display',sans-serif; font-weight:800; font-size:26px; }
+  .group-row{ padding:16px; margin-bottom:12px; }
+  .group-row .row-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .group-row .row-head .btn{ flex:none; }
+  .swatch{ width:14px; height:14px; border-radius:3px; flex:none; }
+  .group-row .row-head input{ font-weight:600; }
+  .items-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  @media (max-width:560px){ .items-grid{ grid-template-columns:repeat(2,1fr); } }
+  .field-error{ border-color:var(--brick) !important; }
+  .form-note{ font-size:12.5px; color:var(--ink-faint); margin-top:4px; }
+  .title-field{ margin-bottom:16px; max-width:420px; }
+  .title-field label, .row-head label{ display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:700; margin-bottom:4px; }
+
+  /* ---------- PLAY ---------- */
+  .play-meta{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:16px; }
+  .meta-chip{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink-soft); }
+  .meta-chip .mono{ font-size:15px; color:var(--ink); font-weight:600; }
+  .meta-chip .mono.timer-low{ color:var(--brick); animation:pulse 1s ease infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+  .lives{ display:flex; gap:5px; }
+  .life-dot{ width:9px; height:9px; border-radius:50%; background:var(--brick); }
+  .life-dot.spent{ background:var(--line); }
+  .solved-stack{ display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+  .solved-bar{
+    border-radius:8px; padding:14px 16px; display:flex; flex-direction:column; gap:2px;
+    animation:pop .28s ease;
+  }
+  .solved-bar .tier-badge{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; opacity:.75; }
+  .solved-bar .label{ font-weight:800; font-size:15px; letter-spacing:.01em; }
+  .solved-bar .items{ font-size:13px; opacity:.85; }
+  @keyframes pop{ from{ transform:scale(.94); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .tile-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  @media (max-width:560px){ .tile-grid{ grid-template-columns:repeat(2,1fr); gap:10px; } }
+  .tile{
+    background:var(--paper); border:1.5px solid var(--line); border-radius:8px;
+    min-height:78px; display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:8px; font-size:14.5px; font-weight:600; color:var(--ink); cursor:pointer;
+    line-height:1.25; transition:transform .08s ease, border-color .12s ease, background .12s ease;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    -webkit-user-select:none; user-select:none;
+  }
+  @media (max-width:560px){ .tile{ min-height:88px; font-size:15.5px; } }
+  .tile:hover{ border-color:var(--ink-faint); }
+  .tile:active{ transform:scale(.96); }
+  .tile.selected{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .tile.shake{ animation:shake .38s ease; }
+  @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+  .play-controls{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap; }
+  .hint{ min-height:20px; font-size:13px; color:var(--gold); font-weight:600; text-align:center; margin:10px 0 0; }
+
+  .end-panel{ margin-top:22px; padding:22px; text-align:center; }
+  .end-panel .headline{ font-family:'Big Shoulders Display',sans-serif; font-size:30px; font-weight:900; margin-bottom:4px; }
+  .end-stats{ display:flex; justify-content:center; gap:26px; margin:16px 0 20px; flex-wrap:wrap; }
+  .end-stats div{ text-align:center; }
+  .end-stats .num{ font-size:22px; font-weight:700; display:block; }
+  .end-stats .lab{ font-size:11.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
+  .end-breakdown{ text-align:left; display:flex; flex-direction:column; gap:8px; margin:18px 0; }
+
+  /* ---------- LIBRARY ---------- */
+  .sync-note{ font-size:12.5px; color:var(--ink-faint); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+  .sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--sage); }
+  .sync-dot.local{ background:var(--gold); }
+  .wall-list{ display:flex; flex-direction:column; gap:10px; }
+  .wall-card{ padding:14px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .wall-card .info{ flex:1; min-width:180px; }
+  .wall-card .info h4{ font-size:16px; margin-bottom:5px; }
+  .chip-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{ font-size:11.5px; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; }
+  .chip .dot{ width:6px; height:6px; border-radius:50%; }
+  .empty-state{ padding:34px 20px; text-align:center; color:var(--ink-soft); }
+  .section-head{ font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); font-weight:700; margin:22px 0 10px; }
+
+  /* ---------- MODAL / TOAST ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(20,21,18,.5); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  .modal{ background:var(--paper); border-radius:12px; padding:24px; max-width:420px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+  .modal h3{ font-size:18px; margin-bottom:10px; }
+  .modal p{ font-size:13.5px; color:var(--ink-soft); margin:0 0 14px; }
+  .modal .btn-row{ margin-top:16px; justify-content:flex-end; }
+  #toast{
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(12px);
+    background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:999px;
+    font-size:13.5px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+    z-index:60; max-width:90vw; text-align:center;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="application/json" id="library-data">[]</script>
+<script type="application/json" id="stats-data">{"cats":{},"pairs":{},"walls":0,"batches":[]}</script>
+<div id="toast" role="status" aria-live="polite"></div>
+<script id="app-script">
+(function(){
+  'use strict';
+
+  /* ============================================================
+     BACKEND — turns on shared saving and shared learning when
+     hosting outside Claude.
+
+       ""            no backend; each visitor's browser only
+       "same-origin" served by our own Node server (Render)
+       "https://..." a backend on a different domain
+
+     The Render server rewrites this line as it serves the page, so
+     you don't normally edit it by hand.
+     ============================================================ */
+  var BACKEND = "";
+
+  /* Three ways this page can store things, picked automatically:
+       "http"     - a backend is configured above (shared, no reload)
+       "artifact" - running inside Claude, page republishes itself
+       "local"    - neither; this browser only                        */
+  var storageMode = "local";
+
+  /* tier = how obscure the KNOWLEDGE is: 0 common, 1 general, 2 specialist, 3 wordplay.
+     key = stable id, used by the decoy index to measure how much a wall misdirects. */
+  var CATEGORIES = [
+    /* ---- tier 0: most people place these instantly ---- */
+    { tier:0, key:"planets", label:"Planets", items:["Mercury","Venus","Mars","Neptune"] },
+    { tier:0, key:"card-suits", label:"Card suits", items:["Hearts","Clubs","Diamonds","Spades"] },
+    { tier:0, key:"compass-points", label:"Compass points", items:["North","South","East","West"] },
+    { tier:0, key:"seasons", label:"Seasons", items:["Spring","Summer","Autumn","Winter"] },
+    { tier:0, key:"rainbow-colours", label:"Colours of the rainbow", items:["Red","Orange","Yellow","Indigo"] },
+    { tier:0, key:"dog-breeds", label:"Dog breeds", items:["Beagle","Poodle","Boxer","Husky"] },
+    { tier:0, key:"big-cats", label:"Big cats", items:["Lion","Tiger","Leopard","Jaguar"] },
+    { tier:0, key:"farm-animals", label:"Farm animals", items:["Cow","Sheep","Goat","Pig"] },
+    { tier:0, key:"face-features", label:"Parts of the face", items:["Nose","Chin","Cheek","Brow"] },
+    { tier:0, key:"orchard-fruit", label:"Orchard fruit", items:["Apple","Pear","Cherry","Plum"] },
+    { tier:0, key:"citrus", label:"Citrus fruits", items:["Lemon","Lime","Tangerine","Grapefruit"] },
+    { tier:0, key:"vegetables", label:"Vegetables", items:["Carrot","Potato","Onion","Parsnip"] },
+    { tier:0, key:"breakfast-foods", label:"Breakfast foods", items:["Pancake","Waffle","Bacon","Porridge"] },
+    { tier:0, key:"pasta", label:"Types of pasta", items:["Penne","Fusilli","Linguine","Ravioli"] },
+    { tier:0, key:"pizza-toppings", label:"Pizza toppings", items:["Pepperoni","Mushroom","Olive","Anchovy"] },
+    { tier:0, key:"cheeses", label:"Cheeses", items:["Brie","Feta","Gouda","Cheddar"] },
+    { tier:0, key:"coffee-drinks", label:"Coffee drinks", items:["Espresso","Latte","Macchiato","Cappuccino"] },
+    { tier:0, key:"chess-pieces", label:"Chess pieces", items:["Bishop","Knight","Rook","Pawn"] },
+    { tier:0, key:"board-games", label:"Board games", items:["Monopoly","Scrabble","Risk","Battleship"] },
+    { tier:0, key:"weather", label:"Kinds of weather", items:["Rain","Snow","Fog","Hail"] },
+    { tier:0, key:"storms", label:"Types of storm", items:["Hurricane","Typhoon","Cyclone","Tornado"] },
+    { tier:0, key:"oceans", label:"Oceans", items:["Pacific","Atlantic","Arctic","Southern"] },
+    { tier:0, key:"continents", label:"Continents", items:["Africa","Asia","Europe","Antarctica"] },
+    { tier:0, key:"us-states", label:"US states", items:["Texas","Florida","Ohio","Nevada"] },
+    { tier:0, key:"euro-capitals", label:"European capitals", items:["Paris","Rome","Madrid","Vienna"] },
+    { tier:0, key:"rivers", label:"Great rivers", items:["Nile","Amazon","Danube","Volga"] },
+    { tier:0, key:"mountains", label:"Famous mountains", items:["Everest","Kilimanjaro","Denali","Matterhorn"] },
+    { tier:0, key:"shapes", label:"Shapes", items:["Circle","Square","Triangle","Hexagon"] },
+    { tier:0, key:"string-instruments", label:"String instruments", items:["Violin","Cello","Viola","Harp"] },
+    { tier:0, key:"zodiac", label:"Zodiac signs", items:["Leo","Aries","Gemini","Libra"] },
+    { tier:0, key:"bread", label:"Types of bread", items:["Baguette","Ciabatta","Sourdough","Focaccia"] },
+    { tier:0, key:"herbs", label:"Culinary herbs", items:["Basil","Thyme","Rosemary","Sage"] },
+    { tier:0, key:"flowers", label:"Garden flowers", items:["Rose","Tulip","Daisy","Lily"] },
+    { tier:0, key:"planets-dwarf", label:"Dwarf planets", items:["Pluto","Ceres","Eris","Makemake"] },
+    { tier:0, key:"kitchen-utensils", label:"Kitchen utensils", items:["Whisk","Ladle","Spatula","Colander"] },
+
+    /* ---- tier 1: general knowledge ---- */
+    { tier:1, key:"greek-letters", label:"Greek letters", items:["Alpha","Beta","Gamma","Delta"] },
+    { tier:1, key:"elements", label:"Chemical elements", items:["Iron","Copper","Zinc","Cobalt"] },
+    { tier:1, key:"precious-metals", label:"Precious metals", items:["Gold","Silver","Platinum","Palladium"] },
+    { tier:1, key:"gemstones", label:"Gemstones", items:["Ruby","Emerald","Topaz","Opal"] },
+    { tier:1, key:"shakespeare-tragedies", label:"Shakespeare tragedies", items:["Hamlet","Macbeth","Othello","Coriolanus"] },
+    { tier:1, key:"greek-gods", label:"Greek gods", items:["Zeus","Apollo","Hermes","Ares"] },
+    { tier:1, key:"roman-gods", label:"Roman gods", items:["Jupiter","Juno","Vulcan","Minerva"] },
+    { tier:1, key:"norse-gods", label:"Norse gods", items:["Odin","Thor","Loki","Freya"] },
+    { tier:1, key:"nato-alphabet", label:"NATO alphabet words", items:["Tango","Foxtrot","Whiskey","Romeo"] },
+    { tier:1, key:"ballroom-dances", label:"Ballroom dances", items:["Waltz","Rumba","Samba","Quickstep"] },
+    { tier:1, key:"card-games", label:"Card games", items:["Poker","Bridge","Rummy","Canasta"] },
+    { tier:1, key:"poker-hands", label:"Poker hands", items:["Flush","Straight","Full House","Two Pair"] },
+    { tier:1, key:"constellations", label:"Constellations", items:["Orion","Pegasus","Draco","Lyra"] },
+    { tier:1, key:"clouds", label:"Cloud types", items:["Cirrus","Cumulus","Stratus","Nimbus"] },
+    { tier:1, key:"punctuation", label:"Punctuation marks", items:["Comma","Colon","Hyphen","Asterisk"] },
+    { tier:1, key:"currencies", label:"World currencies", items:["Peso","Rupee","Yen","Krona"] },
+    { tier:1, key:"us-coins", label:"US coins", items:["Penny","Nickel","Dime","Quarter"] },
+    { tier:1, key:"volcanoes", label:"Volcanoes", items:["Vesuvius","Etna","Krakatoa","Stromboli"] },
+    { tier:1, key:"great-lakes", label:"The Great Lakes", items:["Superior","Michigan","Huron","Erie"] },
+    { tier:1, key:"music-genres", label:"Music genres", items:["Blues","Soul","Metal","House"] },
+    { tier:1, key:"beatles", label:"The Beatles", items:["Lennon","McCartney","Harrison","Starr"] },
+    { tier:1, key:"gospels", label:"The four Gospels", items:["Matthew","Mark","Luke","John"] },
+    { tier:1, key:"horsemen", label:"Horsemen of the Apocalypse", items:["War","Famine","Death","Conquest"] },
+    { tier:1, key:"deadly-sins", label:"Deadly sins", items:["Pride","Greed","Envy","Sloth"] },
+    { tier:1, key:"animal-groups", label:"Collective nouns for animals", items:["Pack","School","Herd","Flock"] },
+    { tier:1, key:"poetry-forms", label:"Forms of poetry", items:["Sonnet","Haiku","Limerick","Ballad"] },
+    { tier:1, key:"irish-counties", label:"Irish counties", items:["Limerick","Cork","Clare","Kerry"] },
+    { tier:1, key:"trees", label:"Trees", items:["Oak","Ash","Willow","Birch"] },
+    { tier:1, key:"nuts", label:"Nuts", items:["Almond","Cashew","Pecan","Walnut"] },
+    { tier:1, key:"hats", label:"Types of hat", items:["Beret","Fedora","Bowler","Trilby"] },
+    { tier:1, key:"boxing-weights", label:"Boxing weight classes", items:["Feather","Welter","Heavy","Bantam"] },
+    { tier:1, key:"martial-arts", label:"Martial arts", items:["Judo","Karate","Aikido","Taekwondo"] },
+    { tier:1, key:"olympic-sports", label:"Olympic sports", items:["Archery","Curling","Rowing","Fencing"] },
+    { tier:1, key:"swimming-strokes", label:"Swimming strokes", items:["Freestyle","Butterfly","Backstroke","Breaststroke"] },
+    { tier:1, key:"golf-terms", label:"Golf scoring terms", items:["Birdie","Eagle","Bogey","Albatross"] },
+    { tier:1, key:"birds-of-prey", label:"Birds of prey", items:["Hawk","Falcon","Kestrel","Osprey"] },
+    { tier:1, key:"bond-actors", label:"James Bond actors", items:["Connery","Moore","Brosnan","Dalton"] },
+    { tier:1, key:"disney-princesses", label:"Disney princesses", items:["Ariel","Belle","Jasmine","Aurora"] },
+    { tier:1, key:"ancient-wonders", label:"Wonders of the ancient world", items:["Colossus","Great Pyramid","Hanging Gardens","Mausoleum"] },
+    { tier:1, key:"chess-openings", label:"Chess openings", items:["Sicilian","French","Italian","English"] },
+    { tier:1, key:"planets-moons", label:"Moons of the solar system", items:["Titan","Europa","Io","Phobos"] },
+    { tier:1, key:"musketeers", label:"The Musketeers and friend", items:["Athos","Porthos","Aramis","D'Artagnan"] },
+    { tier:1, key:"seven-dwarfs", label:"The Seven Dwarfs", items:["Doc","Grumpy","Bashful","Dopey"] },
+    { tier:1, key:"monopoly-tokens", label:"Monopoly tokens", items:["Thimble","Boot","Wheelbarrow","Battleship"] },
+
+    /* ---- tier 2: specialist knowledge ---- */
+    { tier:2, key:"baroque-composers", label:"Baroque composers", items:["Bach","Handel","Vivaldi","Purcell"] },
+    { tier:2, key:"impressionists", label:"Impressionist painters", items:["Monet","Renoir","Degas","Pissarro"] },
+    { tier:2, key:"renaissance-painters", label:"Renaissance painters", items:["Titian","Botticelli","Raphael","Michelangelo"] },
+    { tier:2, key:"beef-cuts", label:"Cuts of beef", items:["Sirloin","Brisket","Flank","Chuck"] },
+    { tier:2, key:"knots", label:"Knots", items:["Bowline","Clove Hitch","Reef","Sheet Bend"] },
+    { tier:2, key:"fencing-moves", label:"Fencing moves", items:["Lunge","Parry","Riposte","Feint"] },
+    { tier:2, key:"ballet-terms", label:"Ballet terms", items:["Plie","Pirouette","Arabesque","Jete"] },
+    { tier:2, key:"heraldry", label:"Heraldic ordinaries", items:["Chevron","Fess","Pale","Bend"] },
+    { tier:2, key:"columns", label:"Classical orders of architecture", items:["Doric","Ionic","Corinthian","Tuscan"] },
+    { tier:2, key:"sailing-terms", label:"Parts of a sailing boat", items:["Jib","Boom","Keel","Mast"] },
+    { tier:2, key:"typography", label:"Typography terms", items:["Kerning","Serif","Leading","Ligature"] },
+    { tier:2, key:"fallacies", label:"Logical fallacies", items:["Straw Man","Ad Hominem","Slippery Slope","False Dilemma"] },
+    { tier:2, key:"philosophers", label:"Philosophers", items:["Kant","Hegel","Spinoza","Descartes"] },
+    { tier:2, key:"russian-novelists", label:"Russian novelists", items:["Tolstoy","Dostoevsky","Turgenev","Gogol"] },
+    { tier:2, key:"wine-grapes", label:"Wine grape varieties", items:["Merlot","Syrah","Riesling","Malbec"] },
+    { tier:2, key:"whisky", label:"Whisky styles", items:["Scotch","Bourbon","Rye","Peated"] },
+    { tier:2, key:"geological-periods", label:"Geological periods", items:["Jurassic","Triassic","Cretaceous","Permian"] },
+    { tier:2, key:"bones", label:"Bones of the body", items:["Femur","Tibia","Scapula","Sternum"] },
+    { tier:2, key:"brain-parts", label:"Parts of the brain", items:["Cortex","Cerebellum","Amygdala","Thalamus"] },
+    { tier:2, key:"stitches", label:"Sewing stitches", items:["Cross","Chain","Blanket","Running"] },
+    { tier:2, key:"sushi", label:"Sushi styles", items:["Nigiri","Sashimi","Maki","Temaki"] },
+    { tier:2, key:"opera-voices", label:"Operatic voice types", items:["Soprano","Alto","Tenor","Baritone"] },
+    { tier:2, key:"fish", label:"Fish", items:["Bass","Sole","Perch","Ray"] },
+    { tier:2, key:"clock-parts", label:"Parts of a clock", items:["Escapement","Pendulum","Mainspring","Balance"] },
+    { tier:2, key:"printing-sizes", label:"Paper sizes", items:["Foolscap","Quarto","Folio","Octavo"] },
+
+    /* ---- tier 3: wordplay — the connection itself is the puzzle ---- */
+    { tier:3, key:"precede-ball", label:"___ BALL", items:["Foot","Base","Basket","Volley"] },
+    { tier:3, key:"follow-fire", label:"FIRE ___", items:["Place","Work","Fly","Arm"] },
+    { tier:3, key:"precede-stone", label:"___ STONE", items:["Corner","Lime","Mile","Brim"] },
+    { tier:3, key:"follow-sun", label:"SUN ___", items:["Flower","Shine","Burn","Rise"] },
+    { tier:3, key:"precede-light", label:"___ LIGHT", items:["Moon","Day","Star","Flash"] },
+    { tier:3, key:"sound-like-letters", label:"Sound like letters of the alphabet", items:["Bee","Sea","Are","Why"] },
+    { tier:3, key:"silent-first", label:"Begin with a silent letter", items:["Gnome","Psalm","Wrist","Pterodactyl"] },
+    { tier:3, key:"hidden-body-parts", label:"Hide a body part", items:["Chinchilla","Hippopotamus","Armadillo","Earwig"] },
+    { tier:3, key:"hidden-eight", label:"Hide the number EIGHT", items:["Weight","Freight","Height","Straight"] },
+    { tier:3, key:"sound-like-numbers", label:"Sound like numbers", items:["Won","Ate","Fore","Too"] },
+    { tier:3, key:"precede-board", label:"___ BOARD", items:["Key","Card","Skate","Chalk"] },
+    { tier:3, key:"follow-black", label:"BLACK ___", items:["Bird","Mail","Smith","Berry"] },
+    { tier:3, key:"precede-work", label:"___ WORK", items:["Home","Net","Team","Frame"] },
+    { tier:3, key:"precede-house", label:"___ HOUSE", items:["Full","Green","Ware","Light"] },
+    { tier:3, key:"follow-horse", label:"HORSE ___", items:["Play","Shoe","Power","Radish"] },
+    { tier:3, key:"precede-paper", label:"___ PAPER", items:["News","Wall","Sand","Wrapping"] },
+    { tier:3, key:"follow-rain", label:"RAIN ___", items:["Bow","Coat","Fall","Forest"] },
+    { tier:3, key:"precede-cake", label:"___ CAKE", items:["Cup","Pan","Fruit","Beef"] },
+    { tier:3, key:"follow-butter", label:"BUTTER ___", items:["Fly","Milk","Scotch","Nut"] },
+    { tier:3, key:"precede-pipe", label:"___ PIPE", items:["Bag","Wind","Drain","Peace"] },
+    { tier:3, key:"follow-snow", label:"SNOW ___", items:["Ball","Man","Flake","Drift"] },
+    { tier:3, key:"precede-dog", label:"___ DOG", items:["Bull","Sheep","Hot","Watch"] },
+    { tier:3, key:"silent-b", label:"Contain a silent B", items:["Comb","Doubt","Thumb","Lamb"] },
+    { tier:3, key:"silent-k", label:"Begin with a silent K", items:["Knee","Knife","Knight","Knock"] },
+    { tier:3, key:"palindromes", label:"Palindromes", items:["Level","Rotor","Kayak","Civic"] },
+    { tier:3, key:"states-that-are-names", label:"US states that are also first names", items:["Georgia","Virginia","Dakota","Carolina"] },
+    { tier:3, key:"countries-that-are-names", label:"Countries that are also first names", items:["Chad","Jordan","Israel","Guinea"] },
+    { tier:3, key:"follow-hand", label:"HAND ___", items:["Bag","Cuff","Shake","Writing"] },
+    { tier:3, key:"precede-berry", label:"___ BERRY", items:["Straw","Blue","Rasp","Goose"] },
+    { tier:3, key:"follow-head", label:"HEAD ___", items:["Line","Ache","Phone","Quarters"] }
+  ];
+
+  /* Where a wall's difficulty actually comes from: an item that plausibly belongs to
+     ANOTHER group in the same grid. Keys here are items; values are the category keys
+     they could be mistaken for. Literal duplicates across categories are found
+     automatically and disqualify a wall outright (that would be genuinely ambiguous,
+     not merely hard). */
+  var DECOY_HINTS = {
+    "mercury":["elements","roman-gods","precious-metals"],
+    "venus":["roman-gods"], "mars":["roman-gods"], "neptune":["roman-gods"],
+    "jupiter":["planets"], "juno":["planets"], "vulcan":["planets"], "minerva":["planets"],
+    "apollo":["planets-moons"], "hermes":["roman-gods"], "ares":["roman-gods"],
+    "thor":["greek-gods","norse-gods"], "loki":["greek-gods"], "odin":["greek-gods"],
+    "titan":["greek-gods"], "europa":["continents"], "io":["planets"],
+    "tango":["ballroom-dances"], "foxtrot":["ballroom-dances"], "whiskey":["whisky"], "romeo":["shakespeare-tragedies"],
+    "eagle":["birds-of-prey"], "birdie":["birds-of-prey"], "albatross":["birds-of-prey"],
+    "hawk":["golf-terms"], "falcon":["golf-terms"],
+    "bass":["opera-voices","music-genres","fish"], "sole":["face-features"], "perch":["birds-of-prey"], "ray":["rainbow-colours"],
+    "alto":["string-instruments"], "tenor":["opera-voices"], "soprano":["string-instruments"],
+    "pride":["animal-groups","big-cats"], "sloth":["big-cats","farm-animals"], "school":["animal-groups","fish"],
+    "flock":["deadly-sins"], "herd":["deadly-sins"],
+    "nickel":["elements","precious-metals"], "dime":["us-coins"], "penny":["us-coins"], "quarter":["shapes"],
+    "gold":["rainbow-colours","elements"], "silver":["rainbow-colours","elements"], "copper":["precious-metals"],
+    "iron":["golf-terms","precious-metals"], "zinc":["precious-metals"], "cobalt":["rainbow-colours"],
+    "ruby":["rainbow-colours","gemstones"], "emerald":["rainbow-colours"], "opal":["flowers"], "topaz":["rainbow-colours"],
+    "rose":["rainbow-colours","flowers"], "lily":["flowers"], "daisy":["flowers"], "tulip":["flowers"],
+    "basil":["gospels"], "sage":["philosophers","herbs"], "rosemary":["flowers"], "thyme":["sound-like-numbers"],
+    "olive":["rainbow-colours","flowers","trees"], "lime":["citrus","rainbow-colours"], "orange":["citrus","rainbow-colours"],
+    "cherry":["rainbow-colours"], "plum":["rainbow-colours"], "apple":["orchard-fruit"],
+    "ash":["trees","weather"], "willow":["trees"], "oak":["trees"], "birch":["trees"],
+    "limerick":["poetry-forms","irish-counties"], "cork":["irish-counties"], "clare":["irish-counties"], "kerry":["irish-counties"],
+    "bishop":["chess-pieces"], "knight":["chess-pieces","silent-k"], "rook":["chess-pieces","birds-of-prey"], "pawn":["chess-pieces"],
+    "boxer":["dog-breeds","boxing-weights"], "bowler":["hats"], "beret":["hats"],
+    "michigan":["us-states","great-lakes"], "superior":["great-lakes"], "erie":["great-lakes"], "huron":["great-lakes"],
+    "georgia":["us-states","countries-that-are-names"], "virginia":["us-states"], "dakota":["us-states"], "carolina":["us-states"],
+    "jordan":["rivers","countries-that-are-names"], "chad":["countries-that-are-names"], "israel":["countries-that-are-names"],
+    "amazon":["rivers"], "nile":["rivers"], "volga":["rivers"], "danube":["rivers"],
+    "paris":["greek-gods","euro-capitals"], "rome":["euro-capitals"], "vienna":["euro-capitals"],
+    "hamlet":["shakespeare-tragedies"], "macbeth":["shakespeare-tragedies"], "othello":["board-games","shakespeare-tragedies"],
+    "ariel":["disney-princesses"], "jasmine":["flowers","disney-princesses"], "belle":["disney-princesses"], "aurora":["weather"],
+    "blues":["rainbow-colours","music-genres"], "soul":["music-genres"], "metal":["precious-metals","music-genres"], "house":["precede-house","music-genres"],
+    "delta":["greek-letters","rivers"], "alpha":["greek-letters"], "beta":["greek-letters"], "gamma":["greek-letters"],
+    "flush":["poker-hands"], "straight":["poker-hands","hidden-eight"], "full house":["precede-house"],
+    "bridge":["card-games","precede-board"], "poker":["card-games"], "rummy":["card-games"],
+    "reef":["knots"], "sheet bend":["knots"], "bowline":["sailing-terms"], "boom":["sailing-terms"],
+    "jib":["sailing-terms"], "keel":["sailing-terms"], "mast":["trees"],
+    "pale":["heraldry","rainbow-colours"], "bend":["heraldry"], "chevron":["heraldry","shapes"],
+    "chuck":["beef-cuts"], "flank":["beef-cuts"], "brisket":["beef-cuts"],
+    "cross":["stitches","shapes"], "chain":["stitches"], "blanket":["stitches"], "running":["stitches","swimming-strokes"],
+    "leading":["typography"], "serif":["typography"],
+    "ionic":["columns","elements"], "doric":["columns"], "tuscan":["columns"],
+    "butterfly":["swimming-strokes","follow-butter"], "freestyle":["swimming-strokes"],
+    "war":["horsemen"], "death":["horsemen"], "famine":["horsemen"], "conquest":["horsemen"],
+    "battleship":["board-games","monopoly-tokens"], "boot":["monopoly-tokens"], "thimble":["monopoly-tokens"],
+    "risk":["board-games"], "monopoly":["board-games"], "scrabble":["board-games"],
+    "mark":["gospels","currencies"], "john":["gospels","beatles"], "matthew":["gospels"], "luke":["gospels"],
+    "moore":["bond-actors"], "connery":["bond-actors"], "dalton":["bond-actors"],
+    "key":["precede-board","precede-stone","us-states"], "card":["card-suits","precede-board","card-games"],
+    "skate":["fish","precede-board"], "chalk":["precede-board"],
+    "bird":["follow-black","birds-of-prey"], "mail":["follow-black"], "smith":["follow-black"], "berry":["precede-berry","follow-black"],
+    "foot":["precede-ball","face-features"], "base":["precede-ball"], "basket":["precede-ball"], "volley":["precede-ball"],
+    "place":["follow-fire"], "work":["precede-work","follow-fire"], "fly":["follow-butter","follow-fire"], "arm":["hidden-body-parts","follow-fire"],
+    "moon":["planets-moons","precede-light"], "day":["precede-light"], "star":["constellations","precede-light"], "flash":["precede-light"],
+    "corner":["precede-stone"], "mile":["precede-stone"], "brim":["hats"],
+    "flower":["flowers","follow-sun"], "shine":["follow-sun"], "burn":["follow-sun"], "rise":["follow-sun"],
+    "home":["precede-work"], "net":["precede-work"], "team":["precede-work"], "frame":["precede-work"],
+    "full":["poker-hands","precede-house"], "green":["rainbow-colours","precede-house"], "ware":["precede-house"], "light":["precede-house","precede-light"],
+    "play":["follow-horse"], "shoe":["follow-horse"], "power":["follow-horse"], "radish":["vegetables","follow-horse"],
+    "news":["precede-paper"], "wall":["precede-paper"], "sand":["precede-paper"], "wrapping":["precede-paper"],
+    "bow":["follow-rain","rainbow-colours"], "coat":["follow-rain"], "fall":["seasons","follow-rain"], "forest":["trees","follow-rain"],
+    "cup":["precede-cake","follow-butter"], "pan":["precede-cake","greek-gods"], "fruit":["precede-cake"], "beef":["beef-cuts","precede-cake"],
+    "milk":["follow-butter"], "scotch":["whisky","follow-butter"], "nut":["nuts","follow-butter"],
+    "bag":["precede-pipe","follow-hand"], "wind":["weather","precede-pipe"], "drain":["precede-pipe"], "peace":["precede-pipe"],
+    "ball":["precede-ball","follow-snow"], "man":["follow-snow"], "flake":["follow-snow"], "drift":["follow-snow"],
+    "bull":["farm-animals","precede-dog"], "sheep":["farm-animals","precede-dog"], "hot":["weather","precede-dog"], "watch":["clock-parts","precede-dog"],
+    "comb":["silent-b"], "doubt":["silent-b"], "thumb":["hidden-body-parts","silent-b"], "lamb":["farm-animals","silent-b"],
+    "knee":["hidden-body-parts","silent-k"], "knife":["kitchen-utensils","silent-k"], "knock":["silent-k"],
+    "kayak":["palindromes"], "level":["palindromes"], "civic":["palindromes"], "rotor":["palindromes"],
+    "won":["sound-like-numbers"], "ate":["sound-like-numbers"], "fore":["golf-terms","sound-like-numbers"], "too":["sound-like-numbers"],
+    "bee":["sound-like-letters"], "sea":["oceans","sound-like-letters"], "are":["sound-like-letters"], "why":["sound-like-letters"],
+    "weight":["boxing-weights","hidden-eight"], "height":["hidden-eight"], "freight":["hidden-eight"],
+    "line":["follow-head"], "ache":["follow-head"], "phone":["follow-head"], "quarters":["us-coins","follow-head"],
+    "cuff":["follow-hand"], "shake":["follow-hand"], "writing":["follow-hand"],
+    "straw":["precede-berry","fallacies"], "blue":["rainbow-colours","precede-berry"], "rasp":["precede-berry"], "goose":["precede-berry"],
+    "leo":["zodiac","big-cats"], "aries":["zodiac","farm-animals"], "libra":["zodiac"], "gemini":["zodiac"],
+    "pluto":["planets","roman-gods"], "ceres":["roman-gods"],
+    "lion":["big-cats","zodiac"], "tiger":["big-cats"], "jaguar":["big-cats"], "leopard":["big-cats"],
+    "spades":["card-suits"], "hearts":["card-suits","card-games"], "clubs":["card-suits"], "diamonds":["card-suits","gemstones"],
+    "north":["compass-points"], "south":["compass-points","oceans"], "east":["compass-points"], "west":["compass-points"],
+    "spring":["seasons"], "summer":["seasons"], "winter":["seasons"], "autumn":["seasons"],
+    "colon":["punctuation","hidden-body-parts"], "comma":["punctuation"],
+    "pale":["heraldry"], "brie":["cheeses"], "feta":["cheeses"],
+    "orion":["constellations"], "draco":["constellations"], "pegasus":["constellations"], "lyra":["constellations"],
+    "titian":["renaissance-painters"], "raphael":["renaissance-painters"], "michelangelo":["renaissance-painters"],
+    "bach":["baroque-composers"], "handel":["baroque-composers"],
+    "kant":["philosophers"], "hegel":["philosophers"],
+    "merlot":["wine-grapes"], "rye":["bread","whisky"], "bourbon":["whisky"],
+    "jurassic":["geological-periods"], "cortex":["brain-parts"],
+    "doc":["seven-dwarfs"], "grumpy":["seven-dwarfs"], "dopey":["seven-dwarfs"], "bashful":["seven-dwarfs"],
+    "sicilian":["chess-openings"], "french":["chess-openings"], "italian":["chess-openings","pasta"], "english":["chess-openings"]
+  };
+
+  var TIER_COLORS = ["sage","gold","slate","brick"];
+  var TIER_NAMES = ["Easy","Medium","Hard","Genius"];
+  var COLORS = TIER_COLORS;
+  var MAX_MISTAKES = 4;
+  var TITLE_WORDS = ["Brickwork","Backyard","Corner","Midweek","Weekend","Late-Night","Rooftop","Cellar","High Street","Back Alley","Courtyard","Harbourside","Attic","Terrace","Junction"];
+
+  var library = [];
+  var artifactCap = null;
+  var writable = null;
+  var view = "home";
+  var currentWall = null;
+  var play = null;
+  var toastTimer = null;
+  var TIMER_LABELS = { none:"Untimed", stopwatch:"Stopwatch", "180":"3 min", "300":"5 min", "600":"10 min" };
+  var timerMode = "stopwatch";
+  try {
+    var savedTimerMode = localStorage.getItem("cw_timer_mode");
+    if (savedTimerMode && TIMER_LABELS[savedTimerMode]) timerMode = savedTimerMode;
+  } catch (e){}
+
+  function $(sel, root){ return (root||document).querySelector(sel); }
+  function $all(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+  function app(){ return document.getElementById("app"); }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  function uid(){ return "w" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function shuffle(arr){
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function toast(msg, ms){
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, ms || 2400);
+  }
+
+  function randomTitle(diffLabel){
+    var base = TITLE_WORDS[Math.floor(Math.random() * TITLE_WORDS.length)] + " Wall";
+    return (diffLabel && diffLabel !== "Mixed") ? diffLabel + " " + base : base;
+  }
+
+  /* the tier the DATA says, falling back to the hand-assigned one */
+  function tierFor(cat){
+    return (typeof effectiveTier === "function") ? effectiveTier(cat) : cat.tier;
+  }
+
+  function categoriesByTier(tier){
+    var byLearned = CATEGORIES.filter(function(c){ return tierFor(c) === tier; });
+    return byLearned.length >= 4 ? byLearned
+      : CATEGORIES.filter(function(c){ return c.tier === tier; });
+  }
+
+  /* ---------------- overlap / trap scoring ----------------
+     A wall is hard when its items MISDIRECT: an item that plausibly reads as
+     belonging to another group in the same grid. We measure that instead of
+     asserting it. Two sources feed the index: hand-written decoy hints, and
+     literal cross-membership found automatically across the bank. */
+  var DECOY_INDEX = (function(){
+    var idx = {};
+    function add(item, key){
+      var k = item.toLowerCase();
+      if (!idx[k]) idx[k] = [];
+      if (idx[k].indexOf(key) === -1) idx[k].push(key);
+    }
+    CATEGORIES.forEach(function(c){
+      c.items.forEach(function(item){ add(item, c.key); });
+    });
+    Object.keys(DECOY_HINTS).forEach(function(item){
+      DECOY_HINTS[item].forEach(function(key){ add(item, key); });
+    });
+    return idx;
+  })();
+
+  function wallStats(cats){
+    var keys = cats.map(function(c){ return c.key; });
+    var seen = {}, traps = 0;
+    for (var i = 0; i < cats.length; i++){
+      /* decoy links players taught us, on top of the ones written by hand */
+      var learned = learnedPairsFor(cats[i].key);
+      for (var k0 = 0; k0 < keys.length; k0++){
+        if (k0 !== i && learned.indexOf(keys[k0]) !== -1){ traps++; }
+      }
+      for (var j = 0; j < cats[i].items.length; j++){
+        var item = cats[i].items[j], lower = item.toLowerCase();
+        /* the same item in two groups isn't hard, it's broken */
+        if (seen[lower]) return { valid:false, traps:0 };
+        seen[lower] = true;
+        var fits = DECOY_INDEX[lower] || [];
+        for (var k = 0; k < keys.length; k++){
+          if (k !== i && fits.indexOf(keys[k]) !== -1){ traps++; break; }
+        }
+      }
+    }
+    return { valid:true, traps:traps };
+  }
+
+  /* Which categories can misdirect toward each other. Trap-rich walls are rare
+     (most random quartets have no overlap at all), so the generator walks this
+     graph to find them rather than sampling blindly. */
+  var CATEGORY_LINKS = (function(){
+    var byKey = {}, links = {};
+    CATEGORIES.forEach(function(c){ byKey[c.key] = c; links[c.key] = {}; });
+    CATEGORIES.forEach(function(c){
+      c.items.forEach(function(item){
+        (DECOY_INDEX[item.toLowerCase()] || []).forEach(function(other){
+          if (other !== c.key && byKey[other]){
+            links[c.key][other] = true;
+            links[other][c.key] = true;
+          }
+        });
+      });
+    });
+    var out = {};
+    Object.keys(links).forEach(function(k){ out[k] = Object.keys(links[k]); });
+    return out;
+  })();
+
+  /* traps = target misdirection band. Knowledge tier is a light secondary input:
+     a wall of "easy" categories can still be fiendish if the items overlap. */
+  var DIFFICULTY_SPECS = {
+    mixed:  { label:"Mixed",  perTier:true, traps:[2,5],  wordplay:null,  linked:false },
+    easy:   { label:"Easy",   tiers:[0,1],  traps:[0,1],  wordplay:false, linked:false, preferCommon:true },
+    medium: { label:"Medium", tiers:null,   traps:[2,4],  wordplay:null,  linked:true },
+    hard:   { label:"Hard",   tiers:null,   traps:[5,7],  wordplay:null,  linked:true },
+    genius: { label:"Genius", tiers:null,   traps:[8,16], wordplay:true,  linked:true }
+  };
+
+  var recentKeys = [];
+
+  function pickFour(pool){
+    if (pool.length < 4) return null;
+    return shuffle(pool).slice(0, 4);
+  }
+
+  /* Grow a quartet outward from a seed along decoy links, so the chosen
+     categories actually have something to confuse each other with. */
+  function pickLinked(pool, byKey){
+    var seed = pool[Math.floor(Math.random() * pool.length)];
+    var chosen = [seed], chosenKeys = { };
+    chosenKeys[seed.key] = true;
+    while (chosen.length < 4){
+      var candidates = [];
+      chosen.forEach(function(c){
+        (CATEGORY_LINKS[c.key] || []).forEach(function(k){
+          if (!chosenKeys[k] && byKey[k]) candidates.push(byKey[k]);
+        });
+      });
+      var next;
+      if (candidates.length && Math.random() < 0.9){
+        next = candidates[Math.floor(Math.random() * candidates.length)];
+      } else {
+        next = pool[Math.floor(Math.random() * pool.length)];
+      }
+      if (!next || chosenKeys[next.key]) {
+        next = pool[Math.floor(Math.random() * pool.length)];
+        if (!next || chosenKeys[next.key]) continue;
+      }
+      chosenKeys[next.key] = true;
+      chosen.push(next);
+    }
+    return chosen;
+  }
+
+  function generateWall(diffKey){
+    var spec = DIFFICULTY_SPECS[diffKey] || DIFFICULTY_SPECS.mixed;
+    var pool = (spec.perTier || !spec.tiers) ? CATEGORIES
+      : CATEGORIES.filter(function(c){ return spec.tiers.indexOf(tierFor(c)) !== -1; });
+    var byKey = {};
+    pool.forEach(function(c){ byKey[c.key] = c; });
+    /* aim anywhere in the band, not always dead centre, so repeat plays differ */
+    var target = spec.traps[0] + Math.random() * (spec.traps[1] - spec.traps[0]);
+    var best = null, bestScore = Infinity;
+
+    for (var n = 0; n < 1200; n++){
+      var cats;
+      if (spec.perTier){
+        cats = TIER_COLORS.map(function(_, tier){
+          var p = categoriesByTier(tier);
+          return p[Math.floor(Math.random() * p.length)];
+        });
+      } else if (spec.linked){
+        cats = pickLinked(pool, byKey);
+      } else {
+        cats = pickFour(pool);
+      }
+      if (!cats) break;
+      var st = wallStats(cats);
+      if (!st.valid) continue;
+
+      var score = Math.abs(st.traps - target);
+      if (st.traps < spec.traps[0]) score += 4;
+      var hasWordplay = cats.some(function(c){ return tierFor(c) === 3; });
+      if (spec.wordplay === true && !hasWordplay) score += 8;
+      if (spec.wordplay === false && hasWordplay) score += 5;
+      /* "Easy" should mean easy knowledge too, not just a cleanly separable grid */
+      if (spec.preferCommon){
+        for (var q = 0; q < cats.length; q++){ if (cats[q].tier > 0) score += 0.7; }
+      }
+      /* the densest corner of the decoy graph would otherwise win every time */
+      for (var r = 0; r < cats.length; r++){
+        if (recentKeys.indexOf(cats[r].key) !== -1) score += 1.6;
+      }
+
+      if (score < bestScore){ bestScore = score; best = { cats:cats, stats:st }; }
+      if (score < 0.25) break;
+    }
+
+    if (!best){
+      var fallback = pickFour(pool) || CATEGORIES.slice(0, 4);
+      best = { cats: fallback, stats: wallStats(fallback) };
+    }
+
+    best.cats.forEach(function(c){ recentKeys.push(c.key); });
+    while (recentKeys.length > 16) recentKeys.shift();
+
+    var colors = shuffle(TIER_COLORS);
+    return {
+      id: uid(),
+      title: randomTitle(spec.label),
+      difficulty: spec.label,
+      traps: best.stats.traps,
+      groups: best.cats.map(function(c, i){
+        return { label: c.label, color: colors[i], tier: tierFor(c), key: c.key, items: c.items.slice() };
+      })
+    };
+  }
+
+  /* ---------------- share encode/decode ---------------- */
+  function encodeWall(wall){
+    var json = JSON.stringify({ t: wall.title, g: wall.groups.map(function(g){ return [g.label, g.color, g.items]; }) });
+    var b64 = btoa(unescape(encodeURIComponent(json)));
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function decodeWall(code){
+    var b64 = code.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    var json = decodeURIComponent(escape(atob(b64)));
+    var data = JSON.parse(json);
+    if (!data || !Array.isArray(data.g) || data.g.length !== 4) throw new Error("bad shape");
+    var groups = data.g.map(function(g){
+      if (!Array.isArray(g) || g.length !== 3 || !Array.isArray(g[2]) || g[2].length !== 4) throw new Error("bad group");
+      var color = COLORS.indexOf(g[1]) >= 0 ? g[1] : "sage";
+      return { label: String(g[0]), color: color, tier: TIER_COLORS.indexOf(color), items: g[2].map(String) };
+    });
+    return { id: uid(), title: String(data.t || "Shared Wall"), groups: groups };
+  }
+  function tierOf(g){
+    return (typeof g.tier === "number") ? g.tier : TIER_COLORS.indexOf(g.color);
+  }
+  function shareUrlFor(wall){
+    return location.origin + location.pathname + "#w=" + encodeWall(wall);
+  }
+
+  /* ---------------- persistence ---------------- */
+  function readEmbeddedLibrary(){
+    var node = document.getElementById("library-data");
+    try { return node ? (JSON.parse(node.textContent || "[]") || []) : []; }
+    catch (e){ return []; }
+  }
+  function readLocalLibrary(){
+    try { return JSON.parse(localStorage.getItem("cw_local_library") || "[]") || []; }
+    catch (e){ return []; }
+  }
+  function writeLocalLibrary(list){
+    try { localStorage.setItem("cw_local_library", JSON.stringify(list)); } catch (e){}
+  }
+
+  function initLibrary(){
+    var embedded = readEmbeddedLibrary();
+    var local = readLocalLibrary();
+    var byId = {};
+    embedded.forEach(function(w){ byId[w.id] = w; });
+    local.forEach(function(w){ if (!byId[w.id]) byId[w.id] = w; });
+    library = Object.keys(byId).map(function(k){ return byId[k]; });
+  }
+
+  /* ---------------- shared learning ----------------
+     Every finished wall contributes anonymous, category-level counters to the
+     document itself, so what one player teaches it, every player gets. Counters
+     are additive, which makes merging across simultaneous players safe: two
+     people finishing at once can't corrupt each other, the loser just merges
+     into the winning version on the next write. */
+  var MIN_OBS = 8;        // observations before data may move a category at all
+  var PRIOR_WEIGHT = 10;  // how hard the hand-assigned tier resists the data
+  var PAIR_MIN = 4;       // wrong-guess confusions before a decoy edge is believed
+
+  var stats = { cats:{}, pairs:{}, walls:0, batches:[] };
+  var backendUp = null;
+
+  function blankCat(){ return { shown:0, solved:0, rankSum:0, rankN:0, hints:0 }; }
+
+  function readEmbeddedStats(){
+    var node = document.getElementById("stats-data");
+    try {
+      var s = node ? JSON.parse(node.textContent || "{}") : {};
+      return { cats:s.cats||{}, pairs:s.pairs||{}, walls:s.walls||0, batches:s.batches||[] };
+    } catch (e){ return { cats:{}, pairs:{}, walls:0, batches:[] }; }
+  }
+
+  function readPending(){
+    try { return JSON.parse(localStorage.getItem("cw_pending_stats") || "null"); }
+    catch (e){ return null; }
+  }
+  function writePending(p){
+    try {
+      if (p) localStorage.setItem("cw_pending_stats", JSON.stringify(p));
+      else localStorage.removeItem("cw_pending_stats");
+    } catch (e){}
+  }
+
+  /* ---------------- HTTP backend (hosting outside Claude) ----------------
+     Counters are additive, so the server can merge concurrent players with an
+     atomic increment. That makes this mode strictly better than republishing
+     the page: writes are instant, nobody gets reloaded, and two people
+     finishing a wall at the same moment can't collide. */
+  /* same-origin needs no host: relative paths keep it CORS-free */
+  function apiUrl(path){
+    return BACKEND === "same-origin" ? path : BACKEND.replace(/\/+$/, "") + path;
+  }
+
+  function apiGet(path){
+    return fetch(apiUrl(path), { method:"GET", headers:{ "Accept":"application/json" } })
+      .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  }
+  function apiPost(path, body){
+    return fetch(apiUrl(path), {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(body)
+    }).then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  }
+
+  /* Pull shared walls + learning at boot. Failure is not fatal: the page
+     falls back to this device so a backend outage never blocks play. */
+  function loadRemoteState(){
+    return apiGet("/api/state").then(function(state){
+      if (state && Array.isArray(state.walls)) library = state.walls;
+      if (state && state.stats){
+        stats = {
+          cats: state.stats.cats || {},
+          pairs: state.stats.pairs || {},
+          walls: state.stats.walls || 0,
+          batches: []
+        };
+      }
+      backendUp = true;
+      render();
+    }).catch(function(){
+      backendUp = false;
+      /* keep whatever this device knows and carry on */
+      render();
+    });
+  }
+
+  function flushStatsRemote(){
+    var pending = readPending();
+    if (!pending || !pending.walls) return;
+    /* clear first: the server merges additively and a repeat would double-count */
+    writePending(null);
+    apiPost("/api/stats", { cats: pending.cats, pairs: pending.pairs, walls: pending.walls })
+      .then(function(res){
+        backendUp = true;
+        if (res && res.stats){
+          stats = { cats: res.stats.cats || {}, pairs: res.stats.pairs || {}, walls: res.stats.walls || 0, batches: [] };
+        }
+      })
+      .catch(function(){
+        backendUp = false;
+        /* put it back so nothing is lost, and keep it on this device meanwhile */
+        var again = readPending();
+        writePending(again ? mergePendingBuffers(again, pending) : pending);
+        flushStatsLocal();
+      });
+  }
+
+  function mergePendingBuffers(a, b){
+    var out = { id: a.id || b.id, cats:{}, pairs:{}, walls:(a.walls||0)+(b.walls||0) };
+    [a, b].forEach(function(src){
+      Object.keys(src.cats||{}).forEach(function(k){
+        if (!out.cats[k]) out.cats[k] = blankCat();
+        var s = src.cats[k], d = out.cats[k];
+        d.shown+=s.shown||0; d.solved+=s.solved||0; d.rankSum+=s.rankSum||0; d.rankN+=s.rankN||0; d.hints+=s.hints||0;
+      });
+      Object.keys(src.pairs||{}).forEach(function(k){ out.pairs[k] = (out.pairs[k]||0) + src.pairs[k]; });
+    });
+    return out;
+  }
+
+  /* True only when this copy can actually write back to a shared document.
+     False on a plain web host (no Claude runtime) and for read-only viewers —
+     in both cases the page still learns, just for this device alone. */
+  function isShared(){
+    if (storageMode === "http") return backendUp !== false;
+    return !!artifactCap && writable !== false;
+  }
+
+  function readLocalStats(){
+    try { return JSON.parse(localStorage.getItem("cw_local_stats") || "null"); }
+    catch (e){ return null; }
+  }
+
+  /* Standalone fallback: fold this device's buffered plays into its own store,
+     so learning still accumulates with nowhere to publish to. */
+  function flushStatsLocal(){
+    var pending = readPending();
+    if (!pending || !pending.walls) return;
+    var base = readLocalStats() || { cats:{}, pairs:{}, walls:0, batches:[] };
+    var saved = stats;
+    stats = base;
+    var merged = mergePendingIntoStats();
+    stats = saved;
+    if (!merged.merged) return;
+    try { localStorage.setItem("cw_local_stats", JSON.stringify(merged.stats)); } catch (e){}
+    writePending(null);
+    /* reflect it immediately so the Learning tab isn't stale */
+    stats = mergeStatObjects(readEmbeddedStats(), merged.stats);
+  }
+
+  function mergeStatObjects(a, b){
+    var out = { cats:{}, pairs:{}, walls:(a.walls||0) + (b.walls||0), batches:(a.batches||[]).concat(b.batches||[]) };
+    [a, b].forEach(function(src){
+      Object.keys(src.cats || {}).forEach(function(k){
+        if (!out.cats[k]) out.cats[k] = blankCat();
+        var s = src.cats[k], d = out.cats[k];
+        d.shown += s.shown||0; d.solved += s.solved||0;
+        d.rankSum += s.rankSum||0; d.rankN += s.rankN||0; d.hints += s.hints||0;
+      });
+      Object.keys(src.pairs || {}).forEach(function(k){
+        out.pairs[k] = (out.pairs[k] || 0) + src.pairs[k];
+      });
+    });
+    return out;
+  }
+
+  function initStats(){
+    stats = readEmbeddedStats();
+    /* a device that has been learning on its own carries its own store */
+    var local = readLocalStats();
+    if (local) stats = mergeStatObjects(stats, local);
+    /* A publish reloads the page, so a batch may have landed in the document
+       even though this device never saw the success callback. The batch id
+       tells us which: if the document already counted it, drop it. */
+    var pending = readPending();
+    if (pending && pending.id && stats.batches.indexOf(pending.id) !== -1){
+      writePending(null);
+    }
+  }
+
+  function addObservation(buf, key, fn){
+    if (!buf.cats[key]) buf.cats[key] = blankCat();
+    fn(buf.cats[key]);
+  }
+
+  /* Called once when a wall ends. Records only bank categories — a wall you
+     wrote yourself has no key, and there's nothing general to learn from it. */
+  function recordPlay(){
+    var w = play.wall;
+    if (!w || !w.groups) return;
+    var anyKey = w.groups.some(function(g){ return !!g.key; });
+    if (!anyKey) return;
+
+    var pending = readPending() || { id:"b" + uid(), cats:{}, pairs:{}, walls:0 };
+
+    w.groups.forEach(function(g, gi){
+      if (!g.key) return;
+      addObservation(pending, g.key, function(c){ c.shown++; });
+      var solvedPos = play.solvedOrder ? play.solvedOrder.indexOf(gi) : -1;
+      if (solvedPos !== -1){
+        addObservation(pending, g.key, function(c){
+          c.solved++;
+          /* rank, not seconds: measured inside one wall, so it self-normalises
+             for a slow player, a phone call, or a tab left open */
+          c.rankSum += (solvedPos + 1);
+          c.rankN++;
+        });
+      }
+      if (play.hintedGroups && play.hintedGroups.indexOf(gi) !== -1){
+        addObservation(pending, g.key, function(c){ c.hints++; });
+      }
+    });
+
+    /* which categories people actually confuse with each other */
+    (play.confusions || []).forEach(function(pair){
+      var a = w.groups[pair[0]], b = w.groups[pair[1]];
+      if (!a || !b || !a.key || !b.key) return;
+      var id = [a.key, b.key].sort().join("~");
+      pending.pairs[id] = (pending.pairs[id] || 0) + 1;
+    });
+
+    pending.walls++;
+    writePending(pending);
+  }
+
+  function mergePendingIntoStats(){
+    var pending = readPending();
+    if (!pending) return { stats: stats, merged:false };
+    var out = { cats:{}, pairs:{}, walls:(stats.walls||0) + (pending.walls||0), batches:(stats.batches||[]).slice() };
+    Object.keys(stats.cats).forEach(function(k){
+      out.cats[k] = { shown:stats.cats[k].shown||0, solved:stats.cats[k].solved||0,
+                      rankSum:stats.cats[k].rankSum||0, rankN:stats.cats[k].rankN||0, hints:stats.cats[k].hints||0 };
+    });
+    Object.keys(pending.cats).forEach(function(k){
+      if (!out.cats[k]) out.cats[k] = blankCat();
+      var s = pending.cats[k], d = out.cats[k];
+      d.shown += s.shown||0; d.solved += s.solved||0;
+      d.rankSum += s.rankSum||0; d.rankN += s.rankN||0; d.hints += s.hints||0;
+    });
+    Object.keys(stats.pairs).forEach(function(k){ out.pairs[k] = stats.pairs[k]; });
+    Object.keys(pending.pairs).forEach(function(k){ out.pairs[k] = (out.pairs[k]||0) + pending.pairs[k]; });
+    out.batches.push(pending.id);
+    while (out.batches.length > 40) out.batches.shift();
+    return { stats: out, merged:true };
+  }
+
+  /* Push learning to the shared document. Batched, because every publish
+     reloads the page — doing it per wall would yank players out of the game. */
+  function maybeFlushStats(){
+    var pending = readPending();
+    if (!pending || !pending.walls) return false;
+    if (pending.walls < 3) return false;
+    if (!artifactCap || writable === false) return false;
+    var merged = mergePendingIntoStats();
+    if (!merged.merged) return false;
+    try { sessionStorage.setItem("cw_pending_toast", "Difficulty updated from recent plays"); } catch (e){}
+    artifactCap.publish(buildFullDocument(library, merged.stats)).catch(function(err){
+      try { sessionStorage.removeItem("cw_pending_toast"); } catch (e){}
+      if (err && err.code === "conflict") return;  // keep buffer, retry later
+      writable = false;
+    });
+    return true;
+  }
+
+  /* ---- what the data is allowed to conclude ---- */
+  function effectiveTier(cat){
+    var s = stats.cats[cat.key];
+    if (!s || s.rankN < MIN_OBS) return cat.tier;
+    var meanRank = s.rankSum / s.rankN;          // 1 = found first, 4 = found last
+    var hintRate = s.shown ? s.hints / s.shown : 0;
+    var missRate = s.shown ? 1 - (s.solved / s.shown) : 0;
+    /* 2.5 is a neutral rank; above it the group tends to resist solving */
+    var signal = (meanRank - 2.5) / 1.5 + hintRate * 1.2 + missRate * 1.2;
+    /* shrink toward the hand-assigned tier in proportion to evidence */
+    var weight = s.rankN / (s.rankN + PRIOR_WEIGHT);
+    var delta = Math.max(-1, Math.min(1, Math.round(signal * weight * 2)));
+    return Math.max(0, Math.min(3, cat.tier + delta));
+  }
+
+  function learnedPairsFor(key){
+    var out = [];
+    Object.keys(stats.pairs).forEach(function(id){
+      if (stats.pairs[id] < PAIR_MIN) return;
+      var parts = id.split("~");
+      if (parts[0] === key) out.push(parts[1]);
+      else if (parts[1] === key) out.push(parts[0]);
+    });
+    return out;
+  }
+
+  function buildFullDocument(libArr, statsObj){
+    var titleTag = "<title>" + esc(document.title) + "</title>";
+    var fontLink = document.getElementById("font-link") ? document.getElementById("font-link").outerHTML : "";
+    var styleTag = document.getElementById("app-style") ? document.getElementById("app-style").outerHTML : "";
+    var scriptTag = document.getElementById("app-script") ? document.getElementById("app-script").outerHTML : "";
+    var dataJson = JSON.stringify(libArr).replace(/</g, "\\u003c");
+    var statsJson = JSON.stringify(statsObj || stats).replace(/</g, "\\u003c");
+    return "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+      titleTag + "\n" + fontLink + "\n" + styleTag + "\n</head>\n<body>\n<div id=\"app\"></div>\n" +
+      "<script type=\"application/json\" id=\"library-data\">" + dataJson + "<" + "/script>\n" +
+      "<script type=\"application/json\" id=\"stats-data\">" + statsJson + "<" + "/script>\n" +
+      "<div id=\"toast\" role=\"status\" aria-live=\"polite\"></div>\n" +
+      scriptTag + "\n</body>\n</html>";
+  }
+
+  function saveLibrary(newList, opts){
+    library = newList;
+    opts = opts || {};
+
+    if (storageMode === "http"){
+      render();
+      apiPost("/api/walls", { walls: newList })
+        .then(function(){ backendUp = true; })
+        .catch(function(){
+          backendUp = false;
+          writeLocalLibrary(newList);
+          toast("Couldn't reach the server — saved on this device");
+          render();
+        });
+      if (opts.sharedMsg) toast(opts.sharedMsg);
+      return;
+    }
+
+    var attemptShared = artifactCap && writable !== false;
+    if (attemptShared){
+      /* piggyback any pending play data on this write — one republish, both payloads */
+      var merged = mergePendingIntoStats();
+      var html = buildFullDocument(newList, merged.stats);
+      try { sessionStorage.setItem("cw_pending_toast", opts.sharedMsg || "Saved"); } catch (e){}
+      artifactCap.publish(html).then(function(){
+        writable = true;
+        // a successful html publish reloads this view too; the stashed
+        // toast above is what surfaces once the fresh load boots.
+      }).catch(function(errObj){
+        try { sessionStorage.removeItem("cw_pending_toast"); } catch (e){}
+        var code = errObj && errObj.code;
+        if (code === "conflict"){
+          // view is already being reloaded to the winning version;
+          // the pending batch stays buffered and merges into that one instead
+          return;
+        }
+        writable = false;
+        writeLocalLibrary(newList);
+        toast(opts.localMsg || "Saved on this device only");
+        render();
+      });
+      if (opts.optimistic) render();
+    } else {
+      writeLocalLibrary(newList);
+      render();
+      if (opts.localMsg) toast(opts.localMsg);
+    }
+  }
+
+  function addToLibrary(wall){
+    var withoutDup = library.filter(function(w){ return w.id !== wall.id; });
+    var next = withoutDup.concat([wall]);
+    saveLibrary(next, { optimistic:true, sharedMsg:"Saved to My Walls", localMsg:"Saved to My Walls (this device only)" });
+  }
+  function removeFromLibrary(id){
+    var next = library.filter(function(w){ return w.id !== id; });
+    saveLibrary(next, { optimistic:true, sharedMsg:"Removed from My Walls", localMsg:"Removed (this device only)" });
+  }
+
+  /* ---------------- routing ---------------- */
+  function go(v){
+    if (play && play.timerId && v !== "play"){
+      clearInterval(play.timerId);
+      play.timerId = null;
+    }
+    view = v;
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function tryLoadFromHash(){
+    var h = location.hash || "";
+    var m = h.match(/#w=([^&]+)/);
+    if (!m) return false;
+    try {
+      var wall = decodeWall(decodeURIComponent(m[1]));
+      history.replaceState(null, "", location.pathname + location.search);
+      currentWall = wall;
+      startPlay(wall);
+      return true;
+    } catch (e){
+      history.replaceState(null, "", location.pathname + location.search);
+      toast("That link's puzzle data looks broken");
+      return false;
+    }
+  }
+
+  function openCodeInput(raw){
+    var code = (raw || "").trim();
+    var m = code.match(/#w=([^&]+)/);
+    if (m) code = decodeURIComponent(m[1]);
+    if (!code){ toast("Paste a wall link or code first"); return; }
+    try {
+      var wall = decodeWall(code);
+      currentWall = wall;
+      startPlay(wall);
+    } catch (e){
+      toast("Couldn't read that code");
+    }
+  }
+
+  /* ---------------- play mechanics ---------------- */
+  function startPlay(wall){
+    var pool = [];
+    wall.groups.forEach(function(g, gi){
+      g.items.forEach(function(item){ pool.push({ item: item, gi: gi }); });
+    });
+    pool = shuffle(pool);
+    var isCountdown = timerMode !== "none" && timerMode !== "stopwatch";
+    play = {
+      wall: wall,
+      pool: pool,
+      selected: [],
+      solved: [],
+      mistakes: 0,
+      hintsUsed: 0,
+      solvedOrder: [],
+      hintedGroups: [],
+      confusions: [],
+      recorded: false,
+      finished: false,
+      won: false,
+      endReason: null,
+      hint: "",
+      startedAt: Date.now(),
+      elapsed: 0,
+      timerMode: isCountdown ? "countdown" : timerMode,
+      timeLimit: isCountdown ? parseInt(timerMode, 10) : null,
+      timerId: null
+    };
+    view = "play";
+    render();
+    play.timerId = setInterval(function(){
+      if (!play || play.finished) return;
+      play.elapsed = Math.floor((Date.now() - play.startedAt) / 1000);
+      var el = document.getElementById("timer-readout");
+      if (play.timerMode === "countdown"){
+        var remain = play.timeLimit - play.elapsed;
+        if (remain <= 0){
+          play.elapsed = play.timeLimit;
+          finishPlay(false, "time");
+          return;
+        }
+        if (el){ el.textContent = formatTime(remain); el.classList.toggle("timer-low", remain <= 30); }
+      } else if (play.timerMode === "stopwatch" && el){
+        el.textContent = formatTime(play.elapsed);
+      }
+    }, 1000);
+  }
+
+  function formatTime(s){
+    var m = Math.floor(s / 60), r = s % 60;
+    return m + ":" + (r < 10 ? "0" : "") + r;
+  }
+
+  function toggleTile(idx){
+    if (play.finished || play.locked) return;
+    var pos = play.selected.indexOf(idx);
+    if (pos >= 0){ play.selected.splice(pos, 1); }
+    else {
+      if (play.selected.length >= 4) return;
+      play.selected.push(idx);
+    }
+    play.hint = "";
+    renderPlayBody();
+    if (play.selected.length === 4){
+      play.locked = true;
+      setTimeout(function(){
+        play.locked = false;
+        submitGuess();
+      }, 350);
+    }
+  }
+
+  function submitGuess(){
+    if (play.selected.length !== 4 || play.finished) return;
+    var gis = play.selected.map(function(idx){ return play.pool[idx].gi; });
+    var allSame = gis.every(function(g){ return g === gis[0]; });
+    if (allSame){
+      var gi = gis[0];
+      play.solved.push(gi);
+      play.solvedOrder.push(gi);
+      var solvedIdx = play.selected.slice();
+      play.pool = play.pool.filter(function(_, i){ return solvedIdx.indexOf(i) === -1; });
+      play.selected = [];
+      play.hint = "";
+      if (play.solved.length === 4){
+        finishPlay(true);
+        return;
+      }
+      renderPlayBody();
+    } else {
+      play.mistakes++;
+      var counts = {};
+      gis.forEach(function(g){ counts[g] = (counts[g] || 0) + 1; });
+      var maxCount = Math.max.apply(null, Object.keys(counts).map(function(k){ return counts[k]; }));
+      play.hint = maxCount === 3 ? "One away..." : "";
+      /* a wrong guess IS the measurement: these groups just got confused */
+      var involved = Object.keys(counts).map(Number);
+      for (var a = 0; a < involved.length; a++){
+        for (var b = a + 1; b < involved.length; b++){
+          play.confusions.push([involved[a], involved[b]]);
+        }
+      }
+      var idxs = play.selected.slice();
+      play.selected = [];
+      renderPlayBody();
+      idxs.forEach(function(idx){
+        var node = document.querySelector('.tile[data-idx="' + idx + '"]');
+        if (node){ node.classList.add("shake"); setTimeout(function(){ node.classList.remove("shake"); }, 380); }
+      });
+      if (play.mistakes >= MAX_MISTAKES){
+        finishPlay(false, "mistakes");
+      }
+    }
+  }
+
+  function finishPlay(won, reason){
+    play.finished = true;
+    play.won = won;
+    play.endReason = won ? "won" : (reason || "mistakes");
+    clearInterval(play.timerId);
+    if (!play.recorded){
+      play.recorded = true;
+      try {
+        recordPlay();
+        /* a backend takes writes instantly with no reload, so send every wall;
+           the artifact path batches, and with neither we keep it on-device */
+        if (storageMode === "http") flushStatsRemote();
+        else if (!isShared()) flushStatsLocal();
+      } catch (e){}
+    }
+    if (!won){
+      for (var gi = 0; gi < 4; gi++){
+        if (play.solved.indexOf(gi) === -1) play.solved.push(gi);
+      }
+    }
+    render();
+  }
+
+  function scoreFor(){
+    if (!play.won) return 0;
+    var timePenalty = play.timerMode === "none" ? 0 : play.elapsed * 3;
+    return Math.max(0, 1000 - play.mistakes * 150 - timePenalty);
+  }
+
+  function useHint(){
+    if (play.finished) return;
+    var remaining = play.wall.groups.map(function(_, i){ return i; })
+      .filter(function(i){ return play.solved.indexOf(i) === -1; });
+    if (!remaining.length) return;
+    /* give away the easiest one still standing — by the group's own tier,
+       not its position in the grid */
+    remaining.sort(function(a, b){
+      return tierOf(play.wall.groups[a]) - tierOf(play.wall.groups[b]);
+    });
+    var gi = remaining[0];
+    play.hintsUsed++;
+    play.mistakes++;
+    if (play.hintedGroups.indexOf(gi) === -1) play.hintedGroups.push(gi);
+    var g = play.wall.groups[gi];
+    var tname = TIER_NAMES[tierOf(g)] || "";
+    toast('Hint' + (tname ? ' (' + tname + ')' : '') + ': "' + g.label + '" — costs a guess', 3400);
+    if (play.mistakes >= MAX_MISTAKES){
+      finishPlay(false, "mistakes");
+    } else {
+      renderPlayBody();
+    }
+  }
+
+  /* ---------------- render: HOME ---------------- */
+  function renderHome(){
+    return (
+      '<div class="hero">' +
+        '<p class="lede">Sixteen items, four hidden connections. Play a random wall, build your own from scratch, or open a link a friend sent you.</p>' +
+      '</div>' +
+      '<div class="card timer-box">' +
+        '<h3>Timer</h3>' +
+        '<div class="diff-row">' + ["none","stopwatch","180","300","600"].map(function(mode){
+          return '<button class="btn ' + (timerMode === mode ? "btn-primary" : "btn-ghost") + ' btn-small" data-action="set-timer" data-mode="' + mode + '" aria-current="' + (timerMode === mode) + '">' + TIMER_LABELS[mode] + '</button>';
+        }).join("") + '</div>' +
+        '<p class="form-note">Applies to whatever you play next &mdash; random, built, saved or shared.</p>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<div class="action-tile static">' +
+          '<span class="glyph">&#9636;</span>' +
+          '<h3>Play a random wall</h3>' +
+          '<p>Difficulty is measured, not guessed: the generator searches for a grid with the right number of items that could belong to more than one group.</p>' +
+          '<div class="diff-row">' +
+            '<button class="btn btn-primary btn-small" data-action="play-random" data-diff="mixed">Mixed</button>' +
+            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="easy">Easy</button>' +
+            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="medium">Medium</button>' +
+            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="hard">Hard</button>' +
+            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="genius">Genius</button>' +
+          '</div>' +
+        '</div>' +
+        '<button class="action-tile" data-action="go-build">' +
+          '<span class="glyph">&#9998;</span>' +
+          '<h3>Build your own</h3>' +
+          '<p>Write four categories and sixteen items, then preview, save and share it.</p>' +
+        '</button>' +
+        '<button class="action-tile" data-action="go-library">' +
+          '<span class="glyph">&#9776;</span>' +
+          '<h3>My walls</h3>' +
+          '<p>Everything you’ve saved.</p>' +
+          '<span class="count">' + library.length + ' saved</span>' +
+        '</button>' +
+      '</div>' +
+      '<div class="card code-box">' +
+        '<h3>Have a link or code?</h3>' +
+        '<div class="code-row">' +
+          '<input type="text" id="code-input" placeholder="Paste a share link or code&hellip;">' +
+          '<button class="btn btn-ghost" data-action="open-code">Open</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  /* ---------------- render: BUILD ---------------- */
+  function emptyDraftGroups(){
+    return [0,1,2,3].map(function(){ return { label:"", items:["","","",""] }; });
+  }
+  var draftGroups = null;
+  var draftTitle = "";
+
+  function syncDraftFromDom(){
+    if (!draftGroups) return;
+    var titleInput = $("#wall-title");
+    if (titleInput) draftTitle = titleInput.value;
+    draftGroups = draftGroups.map(function(existing, gi){
+      var labelInput = $('[data-group-label="' + gi + '"]');
+      var itemInputs = $all('[data-group="' + gi + '"]');
+      if (!labelInput || !itemInputs.length) return existing;
+      return { label: labelInput.value, items: itemInputs.map(function(inp){ return inp.value; }) };
+    });
+  }
+
+  function renderBuild(){
+    if (!draftGroups) draftGroups = emptyDraftGroups();
+    var rows = draftGroups.map(function(g, gi){
+      var itemsHtml = g.items.map(function(v, ii){
+        return '<input type="text" data-group="' + gi + '" data-item="' + ii + '" value="' + esc(v) + '" placeholder="Item ' + (ii+1) + '">';
+      }).join("");
+      return (
+        '<div class="card group-row">' +
+          '<div class="row-head">' +
+            '<span class="swatch" style="background:var(--' + TIER_COLORS[gi] + ')"></span>' +
+            '<div style="flex:1">' +
+              '<label>' + TIER_NAMES[gi] + ' connection</label>' +
+              '<input type="text" data-group-label="' + gi + '" value="' + esc(g.label) + '" placeholder="e.g. Types of pasta">' +
+            '</div>' +
+            '<button class="btn btn-ghost btn-small" data-action="fill-row" data-row="' + gi + '">Use a bank category</button>' +
+          '</div>' +
+          '<div class="items-grid">' + itemsHtml + '</div>' +
+        '</div>'
+      );
+    }).join("");
+    return (
+      '<div class="view-header"><h2>Build a wall</h2>' +
+        '<button class="btn btn-ghost btn-small" data-action="fill-example">Fill all from bank</button>' +
+      '</div>' +
+      '<div class="title-field"><label>Wall title</label>' +
+        '<input type="text" id="wall-title" value="' + esc(draftTitle) + '" placeholder="Give it a name">' +
+      '</div>' +
+      rows +
+      '<p class="form-note">Sixteen items total, all different. Order them easiest to trickiest &mdash; that becomes the wall’s Easy through Genius connections. Stuck on one? Use a bank category for just that row.</p>' +
+      '<div class="btn-row" style="margin-top:14px">' +
+        '<button class="btn btn-primary" data-action="preview-build">Preview &amp; play</button>' +
+        '<button class="btn btn-ghost" data-action="clear-build">Clear form</button>' +
+      '</div>'
+    );
+  }
+
+  function readBuildForm(){
+    var title = ($("#wall-title") && $("#wall-title").value || "").trim();
+    var groups = [0,1,2,3].map(function(gi){
+      var labelInput = $('[data-group-label="' + gi + '"]');
+      var items = $all('[data-group="' + gi + '"]').map(function(inp){ return inp.value.trim(); });
+      return { label: (labelInput ? labelInput.value : "").trim(), items: items };
+    });
+    return { title: title, groups: groups };
+  }
+
+  function validateBuild(draft){
+    var errors = [];
+    draft.groups.forEach(function(g, gi){
+      if (!g.label) errors.push({ sel: '[data-group-label="' + gi + '"]' });
+      g.items.forEach(function(v, ii){
+        if (!v) errors.push({ sel: '[data-group="' + gi + '"][data-item="' + ii + '"]' });
+      });
+    });
+    var allItems = draft.groups.reduce(function(acc, g){ return acc.concat(g.items.map(function(v){ return v.toLowerCase(); })); }, []);
+    var seen = {}, dupes = false;
+    allItems.forEach(function(v){ if (v){ if (seen[v]) dupes = true; seen[v] = true; } });
+    return { errors: errors, dupes: dupes };
+  }
+
+  function clearFieldErrors(){
+    $all(".field-error").forEach(function(n){ n.classList.remove("field-error"); });
+  }
+
+  /* ---------------- render: PLAY ---------------- */
+  function renderPlay(){
+    return '<div id="play-root"></div>';
+  }
+
+  function connectionBarHtml(g){
+    var tier = tierOf(g);
+    return (
+      '<div class="solved-bar" style="background:var(--' + g.color + '-tint); color:var(--' + g.color + ')">' +
+        '<div class="tier-badge">' + esc(TIER_NAMES[tier] || "") + '</div>' +
+        '<div class="label">' + esc(g.label) + '</div>' +
+        '<div class="items">' + g.items.map(esc).join(" · ") + '</div>' +
+      '</div>'
+    );
+  }
+
+  function timerChipHtml(){
+    if (play.timerMode === "none"){
+      return '<div class="meta-chip">Untimed</div>';
+    }
+    if (play.timerMode === "countdown"){
+      var remain = Math.max(0, play.timeLimit - play.elapsed);
+      return '<div class="meta-chip">Time left <span class="mono' + (remain <= 30 ? " timer-low" : "") + '" id="timer-readout">' + formatTime(remain) + '</span></div>';
+    }
+    return '<div class="meta-chip">Time <span class="mono" id="timer-readout">' + formatTime(play.elapsed) + '</span></div>';
+  }
+
+  function renderPlayBody(){
+    var root = document.getElementById("play-root");
+    if (!root) return;
+    var w = play.wall;
+    var solvedHtml = play.solved.map(function(gi){ return connectionBarHtml(w.groups[gi]); }).join("");
+    var tilesHtml = play.pool.map(function(t, idx){
+      var sel = play.selected.indexOf(idx) >= 0 ? " selected" : "";
+      return '<button class="tile' + sel + '" data-idx="' + idx + '">' + esc(t.item) + '</button>';
+    }).join("");
+    var livesHtml = "";
+    for (var i = 0; i < MAX_MISTAKES; i++){
+      livesHtml += '<span class="life-dot' + (i < play.mistakes ? " spent" : "") + '"></span>';
+    }
+    var endHtml = "";
+    if (play.finished){
+      var breakdown = w.groups.map(connectionBarHtml).join("");
+      var headline = play.won ? "Solved it"
+        : play.endReason === "time" ? "Time’s up"
+        : play.endReason === "gaveup" ? "Wall conceded"
+        : "Wall stands undefeated";
+      var sub = play.won ? "Every connection, found."
+        : play.endReason === "time" ? "The clock beat you to it — here’s how it breaks down."
+        : play.endReason === "gaveup" ? "No shame in it — here’s how it breaks down."
+        : "Out of guesses — here’s how it breaks down.";
+      endHtml = (
+        '<div class="card end-panel">' +
+          '<div class="headline">' + headline + '</div>' +
+          '<p style="color:var(--ink-soft);font-size:14px">' + sub + '</p>' +
+          '<div class="end-stats">' +
+            '<div><span class="num mono">' + formatTime(play.elapsed) + '</span><span class="lab">Time</span></div>' +
+            '<div><span class="num mono">' + play.mistakes + '</span><span class="lab">Mistakes</span></div>' +
+            '<div><span class="num mono">' + play.hintsUsed + '</span><span class="lab">Hints</span></div>' +
+            (typeof w.traps === "number" ? '<div><span class="num mono">' + w.traps + '</span><span class="lab">Traps</span></div>' : "") +
+            '<div><span class="num mono">' + scoreFor() + '</span><span class="lab">Score</span></div>' +
+          '</div>' +
+          '<div class="end-breakdown">' + breakdown + '</div>' +
+          '<div class="btn-row" style="justify-content:center">' +
+            '<button class="btn btn-primary" data-action="save-wall">Save to My Walls</button>' +
+            '<button class="btn btn-ghost" data-action="share-wall">Copy share link</button>' +
+            '<button class="btn btn-ghost" data-action="play-random">New random wall</button>' +
+            '<button class="btn btn-ghost" data-action="go-home">Back home</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+    root.innerHTML =
+      '<div class="view-header"><h2>' + esc(w.title) + '</h2>' +
+        '<button class="btn btn-ghost btn-small" data-action="go-home">Exit</button>' +
+      '</div>' +
+      '<div class="play-meta">' +
+        timerChipHtml() +
+        '<div class="meta-chip">Guesses left <span class="lives">' + livesHtml + '</span></div>' +
+      '</div>' +
+      '<div class="solved-stack">' + solvedHtml + '</div>' +
+      (play.finished ? "" : '<div class="tile-grid">' + tilesHtml + '</div>') +
+      '<p class="hint">' + esc(play.hint) + '</p>' +
+      (play.finished ? "" :
+        '<div class="play-controls">' +
+          '<div class="btn-row">' +
+            '<button class="btn btn-ghost btn-small" data-action="shuffle-tiles">Shuffle</button>' +
+            '<button class="btn btn-ghost btn-small" data-action="deselect-tiles">Deselect</button>' +
+          '</div>' +
+          '<div class="btn-row">' +
+            '<button class="btn btn-ghost btn-small" data-action="give-up">Give up</button>' +
+            '<button class="btn btn-ghost btn-small" data-action="use-hint">Hint</button>' +
+          '</div>' +
+        '</div>'
+      ) +
+      endHtml;
+  }
+
+  /* ---------------- render: WHAT IT'S LEARNED ---------------- */
+  function renderLearned(){
+    var byKey = {};
+    CATEGORIES.forEach(function(c){ byKey[c.key] = c; });
+    var pending = readPending();
+    var pendingWalls = pending ? (pending.walls || 0) : 0;
+
+    var moved = CATEGORIES.map(function(c){
+      var eff = effectiveTier(c), s = stats.cats[c.key];
+      return { cat:c, eff:eff, obs: s ? s.rankN : 0,
+               rank: (s && s.rankN) ? (s.rankSum / s.rankN) : null };
+    }).filter(function(r){ return r.eff !== r.cat.tier; });
+
+    var pairs = Object.keys(stats.pairs)
+      .filter(function(id){ return stats.pairs[id] >= PAIR_MIN; })
+      .sort(function(a, b){ return stats.pairs[b] - stats.pairs[a]; })
+      .slice(0, 12)
+      .map(function(id){
+        var p = id.split("~");
+        return { a: byKey[p[0]], b: byKey[p[1]], n: stats.pairs[id] };
+      })
+      .filter(function(p){ return p.a && p.b; });
+
+    var observed = CATEGORIES.filter(function(c){
+      var s = stats.cats[c.key]; return s && s.rankN >= MIN_OBS;
+    }).length;
+
+    var head =
+      '<div class="view-header"><h2>What it has learned</h2>' +
+        '<button class="btn btn-ghost btn-small" data-action="go-home">Back</button>' +
+      '</div>' +
+      '<p class="form-note" style="margin-bottom:16px">' +
+        (isShared()
+          ? 'Every finished wall teaches the shared copy, so what one player finds hard, everyone\'s walls reflect. '
+          : 'This copy learns on this device only — it has nowhere shared to write back to. ') +
+        '<strong>' + (stats.walls || 0) + '</strong> walls recorded &middot; <strong>' + observed + '</strong> of ' + CATEGORIES.length +
+        ' categories have enough data to move' + (pendingWalls ? ' &middot; ' + pendingWalls + ' waiting to sync' : '') + '.</p>';
+
+    if (!stats.walls && !pendingWalls){
+      return head + '<div class="card empty-state">Nothing learned yet. Play a few walls and the difficulty will start tuning itself &mdash; a category found last, or hinted often, drifts harder; one found first drifts easier. It needs ' + MIN_OBS + ' solves of a category before it will move it at all.</div>';
+    }
+
+    var movedHtml = moved.length
+      ? '<div class="wall-list">' + moved.map(function(r){
+          var harder = r.eff > r.cat.tier;
+          var col = harder ? "brick" : "sage";
+          return '<div class="card wall-card">' +
+            '<div class="info"><h4>' + esc(r.cat.label) + '</h4>' +
+              '<div class="chip-row">' +
+                '<span class="chip" style="background:var(--' + col + '-tint); color:var(--' + col + ')">' +
+                  TIER_NAMES[r.cat.tier] + ' &rarr; ' + TIER_NAMES[r.eff] + '</span>' +
+                '<span class="chip" style="background:var(--paper-2); color:var(--ink-soft)">' +
+                  'found ' + r.rank.toFixed(1) + ' of 4 on average, ' + r.obs + ' solves</span>' +
+              '</div>' +
+            '</div></div>';
+        }).join("") + '</div>'
+      : '<div class="card empty-state">No category has shifted tier yet. It takes ' + MIN_OBS + ' solves plus a consistent signal before the data is allowed to override the starting difficulty.</div>';
+
+    var pairsHtml = pairs.length
+      ? '<div class="wall-list">' + pairs.map(function(p){
+          return '<div class="card wall-card">' +
+            '<div class="info"><h4>' + esc(p.a.label) + ' &harr; ' + esc(p.b.label) + '</h4>' +
+              '<div class="chip-row"><span class="chip" style="background:var(--gold-tint); color:var(--gold)">' +
+                'confused ' + p.n + ' times</span></div>' +
+            '</div></div>';
+        }).join("") + '</div>'
+      : '<div class="card empty-state">No confusions confirmed yet. When the same two groups get mixed up ' + PAIR_MIN + ' times, that pairing is treated as a genuine trap and the generator starts using it.</div>';
+
+    return head +
+      '<h3 class="section-head">Difficulty the data changed</h3>' + movedHtml +
+      '<h3 class="section-head">Traps players discovered</h3>' + pairsHtml;
+  }
+
+  /* ---------------- render: LIBRARY ---------------- */
+  function renderLibrary(){
+    var note = writable === false
+      ? '<div class="sync-note"><span class="sync-dot local"></span>Saved on this device only</div>'
+      : isShared()
+        ? '<div class="sync-note"><span class="sync-dot"></span>Shared — anyone with this page’s link sees these too</div>'
+        : '<div class="sync-note"><span class="sync-dot local"></span>Saved on this device</div>';
+    if (!library.length){
+      return (
+        '<div class="view-header"><h2>My walls</h2></div>' +
+        note +
+        '<div class="card empty-state">No walls saved yet. Build one, or save a random wall you like from the results screen.</div>'
+      );
+    }
+    var rows = library.slice().reverse().map(function(w){
+      var chips = w.groups.map(function(g){
+        return '<span class="chip" style="background:var(--' + g.color + '-tint); color:var(--' + g.color + ')"><span class="dot" style="background:var(--' + g.color + ')"></span>' + esc(g.label) + '</span>';
+      }).join("");
+      return (
+        '<div class="card wall-card">' +
+          '<div class="info"><h4>' + esc(w.title) + '</h4><div class="chip-row">' + chips + '</div></div>' +
+          '<div class="btn-row">' +
+            '<button class="btn btn-primary btn-small" data-action="play-wall" data-id="' + w.id + '">Play</button>' +
+            '<button class="btn btn-ghost btn-small" data-action="share-saved" data-id="' + w.id + '">Share</button>' +
+            '<button class="btn btn-danger btn-small" data-action="delete-wall" data-id="' + w.id + '">Delete</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+    return '<div class="view-header"><h2>My walls</h2></div>' + note + '<div class="wall-list">' + rows + '</div>';
+  }
+
+  /* ---------------- modal ---------------- */
+  function showShareModal(wall){
+    var url = shareUrlFor(wall);
+    var wrap = document.createElement("div");
+    wrap.className = "overlay";
+    wrap.id = "share-overlay";
+    wrap.innerHTML =
+      '<div class="modal">' +
+        '<h3>Share &ldquo;' + esc(wall.title) + '&rdquo;</h3>' +
+        '<p>Anyone who opens this link plays this exact wall.</p>' +
+        '<input type="text" id="share-link-field" value="' + esc(url) + '" readonly>' +
+        '<div class="btn-row">' +
+          '<button class="btn btn-ghost" data-action="close-modal">Close</button>' +
+          '<button class="btn btn-primary" data-action="copy-link">Copy link</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(wrap);
+    var field = document.getElementById("share-link-field");
+    field.focus();
+    field.select();
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ toast("Link copied"); }).catch(function(){});
+    }
+  }
+  function closeModal(){
+    var m = document.getElementById("share-overlay");
+    if (m) m.remove();
+  }
+
+  /* ---------------- shell / topbar ---------------- */
+  function shellHtml(activeView, inner){
+    function pill(v, text){
+      return '<button class="pill" data-action="go-' + v + '" aria-current="' + (activeView === v) + '">' + text + '</button>';
+    }
+    return (
+      '<div class="shell">' +
+        '<div class="topbar">' +
+          '<div class="wordmark" data-action="go-home" role="button" tabindex="0" aria-label="Connecting Wall home">' +
+            '<span class="brick-icon" aria-hidden="true">&#129530;</span>' +
+            '<h1>Connecting Wall</h1>' +
+            '<span class="tag">build &middot; share &middot; solve</span>' +
+          '</div>' +
+          '<nav class="pills">' + pill("home", "Home") + pill("build", "Build") + pill("library", "My Walls") + pill("learned", "Learning") + '</nav>' +
+        '</div>' +
+        '<div id="view-slot">' + inner + '</div>' +
+      '</div>'
+    );
+  }
+
+  /* ---------------- main render dispatcher ---------------- */
+  function render(){
+    var root = app();
+    var inner = "";
+    if (view === "home") inner = renderHome();
+    else if (view === "build") inner = renderBuild();
+    else if (view === "library") inner = renderLibrary();
+    else if (view === "learned") inner = renderLearned();
+    else if (view === "play") inner = renderPlay();
+    root.innerHTML = shellHtml(view, inner);
+    if (view === "play") renderPlayBody();
+  }
+
+  /* ---------------- event delegation ---------------- */
+  document.addEventListener("click", function(e){
+    var tile = e.target.closest(".tile");
+    if (tile && view === "play" && play && !play.finished){
+      toggleTile(parseInt(tile.getAttribute("data-idx"), 10));
+      return;
+    }
+
+    var t = e.target.closest("[data-action]");
+    if (!t) return;
+    var action = t.getAttribute("data-action");
+
+    if (action === "play-random"){
+      currentWall = generateWall(t.getAttribute("data-diff") || "mixed");
+      startPlay(currentWall);
+    } else if (action === "go-build"){
+      draftGroups = emptyDraftGroups();
+      draftTitle = "";
+      go("build");
+    } else if (action === "go-library"){
+      go("library");
+    } else if (action === "set-timer"){
+      timerMode = t.getAttribute("data-mode");
+      try { localStorage.setItem("cw_timer_mode", timerMode); } catch (e){}
+      go("home");
+    } else if (action === "go-home"){
+      go("home");
+      maybeFlushStats();
+    } else if (action === "go-learned"){
+      go("learned");
+    } else if (action === "open-code"){
+      var input = document.getElementById("code-input");
+      openCodeInput(input ? input.value : "");
+    } else if (action === "fill-example"){
+      syncDraftFromDom();
+      draftGroups = TIER_COLORS.map(function(_, tier){
+        var pool = categoriesByTier(tier);
+        var c = pool[Math.floor(Math.random() * pool.length)];
+        return { label: c.label, items: c.items.slice() };
+      });
+      go("build");
+    } else if (action === "fill-row"){
+      syncDraftFromDom();
+      var rowIdx = parseInt(t.getAttribute("data-row"), 10);
+      var rowPool = categoriesByTier(rowIdx);
+      var picked = rowPool[Math.floor(Math.random() * rowPool.length)];
+      draftGroups[rowIdx] = { label: picked.label, items: picked.items.slice() };
+      go("build");
+    } else if (action === "clear-build"){
+      draftGroups = emptyDraftGroups();
+      draftTitle = "";
+      go("build");
+    } else if (action === "preview-build"){
+      var draft = readBuildForm();
+      clearFieldErrors();
+      var v = validateBuild(draft);
+      if (v.errors.length){
+        v.errors.forEach(function(er){ var n = $(er.sel); if (n) n.classList.add("field-error"); });
+        toast("Fill in every field — sixteen items, four connections");
+        return;
+      }
+      if (v.dupes){
+        toast("Every item needs to be different");
+        return;
+      }
+      var wall = {
+        id: uid(),
+        title: draft.title || "Untitled Wall",
+        groups: draft.groups.map(function(g, gi){ return { label: g.label, color: TIER_COLORS[gi], tier: gi, items: g.items }; })
+      };
+      currentWall = wall;
+      startPlay(wall);
+    } else if (action === "shuffle-tiles"){
+      play.pool = shuffle(play.pool);
+      renderPlayBody();
+    } else if (action === "deselect-tiles"){
+      play.selected = [];
+      renderPlayBody();
+    } else if (action === "give-up"){
+      finishPlay(false, "gaveup");
+    } else if (action === "use-hint"){
+      useHint();
+    } else if (action === "save-wall"){
+      addToLibrary(currentWall);
+    } else if (action === "share-wall"){
+      showShareModal(currentWall);
+    } else if (action === "share-saved"){
+      var id = t.getAttribute("data-id");
+      var w = library.filter(function(x){ return x.id === id; })[0];
+      if (w) showShareModal(w);
+    } else if (action === "play-wall"){
+      var id2 = t.getAttribute("data-id");
+      var w2 = library.filter(function(x){ return x.id === id2; })[0];
+      if (w2){ currentWall = w2; startPlay(w2); }
+    } else if (action === "delete-wall"){
+      var id3 = t.getAttribute("data-id");
+      removeFromLibrary(id3);
+    } else if (action === "close-modal"){
+      closeModal();
+    } else if (action === "copy-link"){
+      var field = document.getElementById("share-link-field");
+      if (field){
+        field.select();
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(field.value).then(function(){ toast("Link copied"); }).catch(function(){
+            document.execCommand && document.execCommand("copy");
+            toast("Link copied");
+          });
+        } else {
+          try { document.execCommand("copy"); toast("Link copied"); } catch (e){ toast("Select the link and copy it"); }
+        }
+      }
+    }
+  });
+
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") closeModal();
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches('[role="button"]')){
+      e.preventDefault();
+      e.target.click();
+    }
+  });
+
+  /* ---------------- boot ---------------- */
+  function boot(){
+    initLibrary();
+    initStats();
+    if (BACKEND){
+      storageMode = "http";
+      loadRemoteState();
+    } else if (window.claude && typeof window.claude.use === "function"){
+      storageMode = "artifact";
+      window.claude.use("artifact").then(function(cap){ artifactCap = cap; }).catch(function(){ artifactCap = null; });
+    }
+    if (!tryLoadFromHash()){
+      go("home");
+    }
+    try {
+      var pending = sessionStorage.getItem("cw_pending_toast");
+      if (pending){
+        sessionStorage.removeItem("cw_pending_toast");
+        setTimeout(function(){ toast(pending); }, 300);
+      }
+    } catch (e){}
+  }
+
+  if (document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>
