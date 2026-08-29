@@ -82,6 +82,10 @@ CREATE TABLE IF NOT EXISTS daily_results (
 
 async function initDb() {
   await pool.query(SCHEMA);
+  // additive migrations for databases created before these columns existed
+  await pool.query("ALTER TABLE walls ADD COLUMN IF NOT EXISTS author TEXT");
+  await pool.query("ALTER TABLE walls ADD COLUMN IF NOT EXISTS plays BIGINT NOT NULL DEFAULT 0");
+  await pool.query("ALTER TABLE walls ADD COLUMN IF NOT EXISTS solves BIGINT NOT NULL DEFAULT 0");
   console.log("schema ready");
 }
 
@@ -189,13 +193,41 @@ async function readStats() {
 async function readState() {
   const [stats, wallRes] = await Promise.all([
     readStats(),
-    pool.query("SELECT data FROM walls ORDER BY created ASC LIMIT $1", [MAX_LIBRARY]),
+    pool.query("SELECT data, author, plays, solves FROM walls ORDER BY created ASC LIMIT $1", [MAX_LIBRARY]),
   ]);
   const walls = [];
   for (const r of wallRes.rows) {
-    try { walls.push(JSON.parse(r.data)); } catch { /* skip corrupt row */ }
+    try {
+      const w = JSON.parse(r.data);
+      w.author = r.author || null;
+      w.plays = Number(r.plays) || 0;
+      w.solves = Number(r.solves) || 0;
+      walls.push(w);
+    } catch { /* skip corrupt row */ }
   }
   return { walls, stats };
+}
+
+function validWall(w) {
+  if (!w || typeof w.id !== "string" || typeof w.title !== "string") return null;
+  if (!Array.isArray(w.groups) || w.groups.length !== 4) return null;
+  for (const g of w.groups) {
+    if (!g || typeof g.label !== "string" || !Array.isArray(g.items) || g.items.length !== 4) return null;
+  }
+  const clean = {
+    id: w.id.slice(0, 64),
+    title: w.title.slice(0, 200),
+    difficulty: typeof w.difficulty === "string" ? w.difficulty.slice(0, 20) : undefined,
+    traps: typeof w.traps === "number" ? Math.max(0, Math.min(99, Math.floor(w.traps))) : undefined,
+    groups: w.groups.map((g) => ({
+      label: String(g.label).slice(0, 120),
+      color: ["sage","gold","slate","brick"].includes(g.color) ? g.color : "sage",
+      tier: typeof g.tier === "number" ? Math.max(0, Math.min(3, Math.floor(g.tier))) : undefined,
+      items: g.items.map((it) => String(it).slice(0, 300)),  // image URLs run long
+    })),
+  };
+  const data = JSON.stringify(clean);
+  return data.length <= 8000 ? { clean, data } : null;
 }
 
 /* ---------- API ---------- */
@@ -260,35 +292,62 @@ app.post("/api/stats", async (req, res) => {
   }
 });
 
-app.post("/api/walls", async (req, res) => {
-  const incoming = Array.isArray(req.body && req.body.walls)
-    ? req.body.walls.slice(0, MAX_LIBRARY) : [];
-  const client = await pool.connect();
+/* Add ONE wall to the community library, credited to its author.
+   The old replace-the-whole-library endpoint is gone: it let any visitor
+   wipe every other player's walls in a single request. */
+app.post("/api/wall", async (req, res) => {
+  const v = validWall(req.body && req.body.wall);
+  if (!v) return res.status(400).json({ error: "bad wall" });
+  const nm = normName(req.body && req.body.author);
   try {
-    await client.query("BEGIN");
-    await client.query("DELETE FROM walls");
-    const now = Date.now();
-    let saved = 0;
-    for (let i = 0; i < incoming.length; i++) {
-      const w = incoming[i];
-      if (!w || typeof w.id !== "string" || typeof w.title !== "string") continue;
-      if (!Array.isArray(w.groups) || w.groups.length !== 4) continue;
-      const data = JSON.stringify(w);
-      if (data.length > 8000) continue;
-      await client.query(
-        "INSERT INTO walls (id, title, data, created) VALUES ($1,$2,$3,$4) ON CONFLICT (id) DO NOTHING",
-        [w.id.slice(0, 64), w.title.slice(0, 200), data, now + i]
-      );
-      saved++;
+    const count = await pool.query("SELECT COUNT(*) AS n FROM walls");
+    if (Number(count.rows[0].n) >= MAX_LIBRARY) {
+      return res.status(409).json({ error: "library full" });
     }
-    await client.query("COMMIT");
-    client.release();
-    res.json({ ok: true, count: saved });
+    await pool.query(
+      `INSERT INTO walls (id, title, data, author, created) VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (id) DO NOTHING`,
+      [v.clean.id, v.clean.title, v.data, nm ? nm.display : null, Date.now()]
+    );
+    res.json({ ok: true });
   } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    console.error("walls:", err.message);
-    client.release();
-    res.status(500).json({ error: "could not save walls" });
+    console.error("wall add:", err.message);
+    res.status(500).json({ error: "could not save wall" });
+  }
+});
+
+/* Delete a wall — only its author (by name), or anyone for unattributed walls. */
+app.post("/api/wall/delete", async (req, res) => {
+  const id = String(req.body && req.body.id || "").slice(0, 64);
+  const nm = normName(req.body && req.body.name);
+  if (!id) return res.status(400).json({ error: "bad id" });
+  try {
+    const r = await pool.query(
+      "DELETE FROM walls WHERE id = $1 AND (author IS NULL OR LOWER(author) = $2)",
+      [id, nm ? nm.key : ""]
+    );
+    if (r.rowCount === 0) return res.status(403).json({ error: "not yours to delete" });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("wall delete:", err.message);
+    res.status(500).json({ error: "could not delete wall" });
+  }
+});
+
+/* A community wall was played — count it, and whether it was solved. */
+app.post("/api/wall/played", async (req, res) => {
+  const id = String(req.body && req.body.id || "").slice(0, 64);
+  const won = !!(req.body && req.body.won);
+  if (!id) return res.status(400).json({ error: "bad id" });
+  try {
+    await pool.query(
+      "UPDATE walls SET plays = plays + 1, solves = solves + $2 WHERE id = $1",
+      [id, won ? 1 : 0]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("wall played:", err.message);
+    res.status(500).json({ error: "could not record play" });
   }
 });
 

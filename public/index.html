@@ -229,6 +229,13 @@
   .tile:active{ transform:scale(.96); }
   .tile.selected{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
   .tile.shake{ animation:shake .38s ease; }
+  .tile-pic{ position:relative; overflow:hidden; padding:0; }
+  .tile-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; }
+  .tile-pic.selected{ box-shadow: inset 0 0 0 3px var(--ink); }
+  .tile-pic.selected .tile-img{ opacity:.5; }
+  .tile-emoji{ font-size:30px; line-height:1; pointer-events:none; }
+  .inline-img{ height:26px; width:auto; border-radius:3px; vertical-align:middle; margin:1px 2px; }
+  .inline-emoji{ font-size:17px; }
   @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
   .play-controls{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap; }
   .hint{ min-height:20px; font-size:13px; color:var(--gold); font-weight:600; text-align:center; margin:10px 0 0; }
@@ -248,7 +255,8 @@
   .wall-list{ display:flex; flex-direction:column; gap:10px; }
   .wall-card{ padding:14px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   .wall-card .info{ flex:1; min-width:180px; }
-  .wall-card .info h4{ font-size:16px; margin-bottom:5px; }
+  .wall-card .info h4{ font-size:16px; margin-bottom:3px; }
+  .wall-byline{ font-size:12px; color:var(--ink-faint); margin-bottom:6px; }
   .chip-row{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{ font-size:11.5px; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; }
   .chip .dot{ width:6px; height:6px; border-radius:50%; }
@@ -577,7 +585,12 @@
     { tier:3, key:"countries-that-are-names", label:"Countries that are also first names", items:["Chad","Jordan","Israel","Guinea"] },
     { tier:3, key:"follow-hand", label:"HAND ___", items:["Bag","Cuff","Shake","Writing"] },
     { tier:3, key:"precede-berry", label:"___ BERRY", items:["Straw","Blue","Rasp","Goose"] },
-    { tier:3, key:"follow-head", label:"HEAD ___", items:["Line","Ache","Phone","Quarters"] }
+    { tier:3, key:"follow-head", label:"HEAD ___", items:["Line","Ache","Phone","Quarters"] },
+    { tier:3, key:"follow-star", label:"STAR ___", items:["Fish","Gaze","Burst","Dust"] },
+    { tier:3, key:"precede-fish", label:"___ FISH", items:["Sword","Cat","Jelly","Shell"] },
+    { tier:3, key:"follow-sea", label:"SEA ___", items:["Horse","Weed","Side","Son"] },
+    { tier:3, key:"precede-card", label:"___ CARD", items:["Post","Score","Wild","Trump"] },
+    { tier:3, key:"follow-water", label:"WATER ___", items:["Fall","Melon","Proof","Colour"] }
   ];
 
   /* Where a wall's difficulty actually comes from: an item that plausibly belongs to
@@ -677,7 +690,17 @@
     "merlot":["wine-grapes"], "rye":["bread","whisky"], "bourbon":["whisky"],
     "jurassic":["geological-periods"], "cortex":["brain-parts"],
     "doc":["seven-dwarfs"], "grumpy":["seven-dwarfs"], "dopey":["seven-dwarfs"], "bashful":["seven-dwarfs"],
-    "sicilian":["chess-openings"], "french":["chess-openings"], "italian":["chess-openings","pasta"], "english":["chess-openings"]
+    "sicilian":["chess-openings"], "french":["chess-openings"], "italian":["chess-openings","pasta"], "english":["chess-openings"],
+    "fish":["follow-star","precede-fish"], "gaze":["follow-star"], "dust":["follow-star"], "burst":["follow-star"],
+    "sword":["precede-fish"], "cat":["big-cats","precede-fish"], "jelly":["precede-fish"], "shell":["precede-fish","follow-sea"],
+    "horse":["farm-animals","follow-sea"], "weed":["follow-sea"], "side":["follow-sea"], "son":["follow-sea"],
+    "post":["precede-card"], "score":["precede-card","golf-terms"], "wild":["precede-card"], "trump":["precede-card","card-games"],
+    "melon":["follow-water"], "proof":["follow-water","whisky"], "colour":["follow-water"],
+    "star":["constellations","precede-light","follow-star","precede-fish"],
+    "orion":["greek-gods","constellations"], "pegasus":["greek-gods","constellations"],
+    "sole":["face-features","fish","precede-fish"], "skate":["fish","precede-board","follow-sea"],
+    "eagle":["birds-of-prey","golf-terms"], "albatross":["birds-of-prey","golf-terms"], "birdie":["birds-of-prey","golf-terms"],
+    "flush":["poker-hands","precede-card"], "straight":["poker-hands","hidden-eight","precede-card"]
   };
 
   var TIER_COLORS = ["sage","gold","slate","brick"];
@@ -841,10 +864,13 @@
     easy:   { label:"Easy",   tiers:[0,1],  traps:[0,1],  wordplay:false, linked:false, preferCommon:true },
     medium: { label:"Medium", tiers:null,   traps:[2,4],  wordplay:null,  linked:true },
     hard:   { label:"Hard",   tiers:null,   traps:[5,7],  wordplay:null,  linked:true },
-    genius: { label:"Genius", tiers:null,   traps:[8,16], wordplay:true,  linked:true }
+    genius: { label:"Genius", tiers:null,   traps:[6,14], wordplay:true,  linked:true }
   };
 
   var recentKeys = [];
+  try { recentKeys = JSON.parse(localStorage.getItem("cw_recent_cats") || "[]") || []; } catch (e){}
+  var RECENT_CAP = 24;          // remembers ~6 walls
+  var RECENT_PENALTY = 3;       // per already-seen category — repeats have to be MUCH better to win
 
   function pickFour(pool){
     if (pool.length < 4) return null;
@@ -917,7 +943,7 @@
       }
       /* the densest corner of the decoy graph would otherwise win every time */
       for (var r = 0; r < cats.length; r++){
-        if (recentKeys.indexOf(cats[r].key) !== -1) score += 1.6;
+        if (recentKeys.indexOf(cats[r].key) !== -1) score += RECENT_PENALTY;
       }
 
       if (score < bestScore){ bestScore = score; best = { cats:cats, stats:st }; }
@@ -931,7 +957,8 @@
 
     if (!pureGen){
       best.cats.forEach(function(c){ recentKeys.push(c.key); });
-      while (recentKeys.length > 16) recentKeys.shift();
+      while (recentKeys.length > RECENT_CAP) recentKeys.shift();
+      try { localStorage.setItem("cw_recent_cats", JSON.stringify(recentKeys)); } catch (e){}
     }
 
     var colors = shuffle(TIER_COLORS);
@@ -1077,6 +1104,13 @@
       score: scoreFor()
     };
     applyResultLocally(rec);
+    var libEntry = null;
+    for (var li = 0; li < library.length; li++){ if (library[li].id === w.id){ libEntry = library[li]; break; } }
+    if (storageMode === "http" && !w.daily && libEntry){
+      libEntry.plays = (libEntry.plays || 0) + 1;
+      if (play.won) libEntry.solves = (libEntry.solves || 0) + 1;
+      apiPost("/api/wall/played", { id: w.id, won: !!play.won }).catch(function(){});
+    }
     if (storageMode === "http" && player.name){
       apiPost("/api/result", rec).then(function(res){
         if (res && res.player){
@@ -1408,10 +1442,19 @@
 
     if (storageMode === "http"){
       render();
-      apiPost("/api/walls", { walls: newList })
-        .then(function(){ backendUp = true; })
-        .catch(function(){
+      var req = opts.httpAdd
+        ? apiPost("/api/wall", { wall: opts.httpAdd, author: player.name })
+        : opts.httpDelete
+          ? apiPost("/api/wall/delete", { id: opts.httpDelete, name: player.name })
+          : Promise.resolve();
+      req.then(function(){ backendUp = true; })
+        .catch(function(err){
           backendUp = false;
+          if (opts.httpDelete && /403/.test(String(err))){
+            toast("Only the wall's author can delete it");
+            loadRemoteState();  // restore the row we removed optimistically
+            return;
+          }
           writeLocalLibrary(newList);
           toast("Couldn't reach the server — saved on this device");
           render();
@@ -1452,13 +1495,18 @@
   }
 
   function addToLibrary(wall){
+    if (storageMode === "http") wall.author = player.name || null;
     var withoutDup = library.filter(function(w){ return w.id !== wall.id; });
     var next = withoutDup.concat([wall]);
-    saveLibrary(next, { optimistic:true, sharedMsg:"Saved to My Walls", localMsg:"Saved to My Walls (this device only)" });
+    saveLibrary(next, {
+      optimistic:true, httpAdd:wall,
+      sharedMsg: storageMode === "http" ? "Shared to the wall library" : "Saved to My Walls",
+      localMsg:"Saved to My Walls (this device only)"
+    });
   }
   function removeFromLibrary(id){
     var next = library.filter(function(w){ return w.id !== id; });
-    saveLibrary(next, { optimistic:true, sharedMsg:"Removed from My Walls", localMsg:"Removed (this device only)" });
+    saveLibrary(next, { optimistic:true, httpDelete:id, sharedMsg:"Wall removed", localMsg:"Removed (this device only)" });
   }
 
   /* ---------------- routing ---------------- */
@@ -1780,9 +1828,9 @@
         '</button>' +
         '<button class="action-tile" data-action="go-library">' +
           '<span class="glyph">&#9776;</span>' +
-          '<h3>My walls</h3>' +
-          '<p>Everything you’ve saved.</p>' +
-          '<span class="count">' + library.length + ' saved</span>' +
+          '<h3>' + (storageMode === "http" ? "Wall library" : "My walls") + '</h3>' +
+          '<p>' + (storageMode === "http" ? "Every player\u2019s walls, playable by anyone." : "Everything you\u2019ve saved.") + '</p>' +
+          '<span class="count">' + library.length + (storageMode === "http" ? ' shared' : ' saved') + '</span>' +
         '</button>' +
       '</div>' +
       '<div class="card code-box">' +
@@ -1900,7 +1948,7 @@
       '</div>' +
       rows +
       '<div class="card build-meter" id="build-meter">' + buildMeterHtml() + '</div>' +
-      '<p class="form-note">Sixteen items total, all different. Order them easiest to trickiest &mdash; that becomes the wall’s Easy through Genius connections. Stuck on one? Use a bank category for just that row.</p>' +
+      '<p class="form-note">Sixteen items total, all different. Order them easiest to trickiest &mdash; that becomes the wall’s Easy through Genius connections. Stuck on one? Use a bank category for just that row. For a picture wall, put emoji in the item boxes &mdash; or paste image links ending .jpg/.png/.gif/.webp and the tiles become the pictures.</p>' +
       '<div class="btn-row" style="margin-top:14px">' +
         '<button class="btn btn-primary" data-action="preview-build">Preview &amp; play</button>' +
         '<button class="btn btn-ghost" data-action="clear-build">Clear form</button>' +
@@ -1941,13 +1989,36 @@
     return '<div id="play-root"></div>';
   }
 
+  /* Picture walls: an item can be plain text, emoji, or an image URL.
+     Emoji travel in share links like any text; image tiles hotlink the URL. */
+  var IMG_ITEM_RE = /^https?:\/\/\S+\.(png|jpe?g|gif|webp|svg)(\?\S*)?$/i;
+  var EMOJI_RE = null;
+  try { EMOJI_RE = new RegExp("\\p{Extended_Pictographic}", "u"); } catch (e){}
+
+  function isImgItem(s){ return IMG_ITEM_RE.test((s || "").trim()); }
+  function isEmojiItem(s){
+    var t = (s || "").trim();
+    if (!t || t.length > 16 || /[A-Za-z0-9]/.test(t)) return false;
+    return EMOJI_RE ? EMOJI_RE.test(t) : /[\uD800-\uDBFF]/.test(t);
+  }
+  function tileInner(item){
+    if (isImgItem(item)) return '<img class="tile-img" src="' + esc(item.trim()) + '" alt="picture clue" loading="lazy">';
+    if (isEmojiItem(item)) return '<span class="tile-emoji">' + esc(item) + '</span>';
+    return esc(item);
+  }
+  function itemInline(item){
+    if (isImgItem(item)) return '<img class="inline-img" src="' + esc(item.trim()) + '" alt="picture clue" loading="lazy">';
+    if (isEmojiItem(item)) return '<span class="inline-emoji">' + esc(item) + '</span>';
+    return esc(item);
+  }
+
   function connectionBarHtml(g){
     var tier = tierOf(g);
     return (
       '<div class="solved-bar" style="background:var(--' + g.color + '-tint); color:var(--' + g.color + ')">' +
         '<div class="tier-badge">' + esc(TIER_NAMES[tier] || "") + '</div>' +
         '<div class="label">' + esc(g.label) + '</div>' +
-        '<div class="items">' + g.items.map(esc).join(" · ") + '</div>' +
+        '<div class="items">' + g.items.map(itemInline).join(" · ") + '</div>' +
       '</div>'
     );
   }
@@ -1970,7 +2041,8 @@
     var solvedHtml = play.solved.map(function(gi){ return connectionBarHtml(w.groups[gi]); }).join("");
     var tilesHtml = play.pool.map(function(t, idx){
       var sel = play.selected.indexOf(idx) >= 0 ? " selected" : "";
-      return '<button class="tile' + sel + '" data-idx="' + idx + '">' + esc(t.item) + '</button>';
+      var pic = isImgItem(t.item) ? " tile-pic" : "";
+      return '<button class="tile' + sel + pic + '" data-idx="' + idx + '">' + tileInner(t.item) + '</button>';
     }).join("");
     var livesHtml = "";
     for (var i = 0; i < MAX_MISTAKES; i++){
@@ -2110,36 +2182,52 @@
       '<h3 class="section-head">Traps players discovered</h3>' + pairsHtml;
   }
 
-  /* ---------------- render: LIBRARY ---------------- */
+  /* ---------------- render: WALL LIBRARY ---------------- */
+  function canDeleteWall(w){
+    if (storageMode !== "http") return true;                 // your device, your rules
+    if (!w.author) return true;                              // unattributed
+    return !!(player.name && w.author.toLowerCase() === player.name.toLowerCase());
+  }
+
   function renderLibrary(){
+    var heading = storageMode === "http" ? "Wall library" : "My walls";
     var note = writable === false
       ? '<div class="sync-note"><span class="sync-dot local"></span>Saved on this device only</div>'
-      : isShared()
-        ? '<div class="sync-note"><span class="sync-dot"></span>Shared — anyone with this page’s link sees these too</div>'
-        : '<div class="sync-note"><span class="sync-dot local"></span>Saved on this device</div>';
+      : storageMode === "http"
+        ? '<div class="sync-note"><span class="sync-dot"></span>Every player\u2019s walls, visible to everyone. You can delete only your own.</div>'
+        : isShared()
+          ? '<div class="sync-note"><span class="sync-dot"></span>Shared — anyone with this page’s link sees these too</div>'
+          : '<div class="sync-note"><span class="sync-dot local"></span>Saved on this device</div>';
     if (!library.length){
       return (
-        '<div class="view-header"><h2>My walls</h2></div>' +
+        '<div class="view-header"><h2>' + heading + '</h2></div>' +
         note +
-        '<div class="card empty-state">No walls saved yet. Build one, or save a random wall you like from the results screen.</div>'
+        '<div class="card empty-state">No walls yet. Build one, or save a random wall you like from the results screen' +
+        (storageMode === "http" ? ' \u2014 it\u2019ll appear here for everyone' : '') + '.</div>'
       );
     }
     var rows = library.slice().reverse().map(function(w){
       var chips = w.groups.map(function(g){
         return '<span class="chip" style="background:var(--' + g.color + '-tint); color:var(--' + g.color + ')"><span class="dot" style="background:var(--' + g.color + ')"></span>' + esc(g.label) + '</span>';
       }).join("");
+      var byline = "";
+      if (storageMode === "http"){
+        var who = w.author ? "by " + esc(w.author) : "anonymous";
+        var playedBit = w.plays ? " \u00b7 solved " + (w.solves || 0) + "/" + w.plays : " \u00b7 unplayed";
+        byline = '<div class="wall-byline">' + who + playedBit + (w.difficulty ? " \u00b7 " + esc(w.difficulty) : "") + '</div>';
+      }
       return (
         '<div class="card wall-card">' +
-          '<div class="info"><h4>' + esc(w.title) + '</h4><div class="chip-row">' + chips + '</div></div>' +
+          '<div class="info"><h4>' + esc(w.title) + '</h4>' + byline + '<div class="chip-row">' + chips + '</div></div>' +
           '<div class="btn-row">' +
             '<button class="btn btn-primary btn-small" data-action="play-wall" data-id="' + w.id + '">Play</button>' +
             '<button class="btn btn-ghost btn-small" data-action="share-saved" data-id="' + w.id + '">Share</button>' +
-            '<button class="btn btn-danger btn-small" data-action="delete-wall" data-id="' + w.id + '">Delete</button>' +
+            (canDeleteWall(w) ? '<button class="btn btn-danger btn-small" data-action="delete-wall" data-id="' + w.id + '">Delete</button>' : '') +
           '</div>' +
         '</div>'
       );
     }).join("");
-    return '<div class="view-header"><h2>My walls</h2></div>' + note + '<div class="wall-list">' + rows + '</div>';
+    return '<div class="view-header"><h2>' + heading + '</h2></div>' + note + '<div class="wall-list">' + rows + '</div>';
   }
 
   /* ---------------- result snippet ---------------- */
