@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Sixteen items, four hidden connections. Play a random wall, build your own, or share one by link.">
+<meta name="description" content="Sixteen items, four hidden connections. A new wall every day, build your own, or share one by link.">
 <meta property="og:title" content="Connecting Wall">
-<meta property="og:description" content="Sixteen items, four hidden connections. Play a random wall, build your own, or share one by link.">
+<meta property="og:description" content="Sixteen items, four hidden connections. A new wall every day, build your own, or share one by link.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%A7%B1%3C/text%3E%3C/svg%3E">
 <title>Connecting Wall</title>
@@ -252,6 +252,32 @@
   .empty-state{ padding:34px 20px; text-align:center; color:var(--ink-soft); }
   .section-head{ font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); font-weight:700; margin:22px 0 10px; }
 
+  /* ---------- DAILY / PLAYER / LEADERBOARD ---------- */
+  .daily-tile{ width:100%; margin-bottom:14px; border-left:4px solid var(--gold); min-height:0; }
+  .daily-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .daily-head .glyph{ color:var(--gold); font-size:20px; }
+  .daily-date{ font-size:12px; color:var(--ink-soft); font-weight:600; }
+  .streak-chip{ font-size:11.5px; font-weight:700; color:var(--gold); background:var(--gold-tint); padding:2px 9px; border-radius:999px; }
+  .player-box{ margin-top:0; margin-bottom:14px; }
+  .player-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .player-stats{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .player-stats strong{ margin-right:8px; font-size:15px; }
+  .player-stats .mono{ font-size:15px; font-weight:600; }
+  .stat-lab{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; margin-right:8px; }
+  .lb{ margin-top:12px; border-top:1px solid var(--line); padding-top:10px; display:flex; flex-direction:column; gap:6px; }
+  .lb-row{ display:flex; align-items:baseline; gap:10px; font-size:13.5px; padding:3px 6px; border-radius:6px; }
+  .lb-row.lb-me{ background:var(--teal-tint); }
+  .lb-rank{ color:var(--ink-faint); width:16px; text-align:right; flex:none; }
+  .lb-name{ flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-streak{ font-size:12px; flex:none; }
+  .lb-pts{ font-weight:600; flex:none; }
+
+  /* ---------- BUILD METER ---------- */
+  .build-meter{ padding:12px 16px; margin-bottom:12px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .meter-label{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:700; }
+  .meter-value{ font-size:14px; }
+  .meter-note{ font-size:11.5px; color:var(--ink-faint); flex-basis:100%; }
+
   /* ---------- MODAL / TOAST ---------- */
   .overlay{ position:fixed; inset:0; background:rgba(20,21,18,.5); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
   .modal{ background:var(--paper); border-radius:12px; padding:24px; max-width:420px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.35); }
@@ -326,6 +352,10 @@
     .diff-row{ gap:5px; }
 
     .timer-box, .code-box{ padding:14px; margin-top:14px; }
+    .player-box{ margin-top:0; }
+    .daily-tile{ margin-bottom:10px; }
+    .lb-row{ font-size:12.5px; }
+    .build-meter{ padding:10px 12px; }
     .group-row{ padding:12px; }
     .items-grid{ grid-template-columns:repeat(2,1fr); gap:6px; }
     .wall-card{ padding:12px; gap:10px; }
@@ -679,10 +709,33 @@
 
   function uid(){ return "w" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
+  /* All generation randomness goes through RNG so the daily wall can swap in
+     a seeded generator and produce the same wall for every player. */
+  var RNG = Math.random;
+  var pureGen = false;  // daily mode: ignore learned stats so the wall is stable all day
+
+  function seededRng(str){
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return function(){
+      h += 0x6D2B79F5;
+      var t = h;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* the daily resets at midnight UK time for everyone, wherever they are */
+  function ukDateStr(){
+    try { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date()); }
+    catch (e){ return new Date().toISOString().slice(0, 10); }
+  }
+
   function shuffle(arr){
     var a = arr.slice();
     for (var i = a.length - 1; i > 0; i--){
-      var j = Math.floor(Math.random() * (i + 1));
+      var j = Math.floor(RNG() * (i + 1));
       var t = a[i]; a[i] = a[j]; a[j] = t;
     }
     return a;
@@ -703,6 +756,7 @@
 
   /* the tier the DATA says, falling back to the hand-assigned one */
   function tierFor(cat){
+    if (pureGen) return cat.tier;
     return (typeof effectiveTier === "function") ? effectiveTier(cat) : cat.tier;
   }
 
@@ -797,7 +851,7 @@
   /* Grow a quartet outward from a seed along decoy links, so the chosen
      categories actually have something to confuse each other with. */
   function pickLinked(pool, byKey){
-    var seed = pool[Math.floor(Math.random() * pool.length)];
+    var seed = pool[Math.floor(RNG() * pool.length)];
     var chosen = [seed], chosenKeys = { };
     chosenKeys[seed.key] = true;
     while (chosen.length < 4){
@@ -808,13 +862,13 @@
         });
       });
       var next;
-      if (candidates.length && Math.random() < 0.9){
-        next = candidates[Math.floor(Math.random() * candidates.length)];
+      if (candidates.length && RNG() < 0.9){
+        next = candidates[Math.floor(RNG() * candidates.length)];
       } else {
-        next = pool[Math.floor(Math.random() * pool.length)];
+        next = pool[Math.floor(RNG() * pool.length)];
       }
       if (!next || chosenKeys[next.key]) {
-        next = pool[Math.floor(Math.random() * pool.length)];
+        next = pool[Math.floor(RNG() * pool.length)];
         if (!next || chosenKeys[next.key]) continue;
       }
       chosenKeys[next.key] = true;
@@ -830,7 +884,7 @@
     var byKey = {};
     pool.forEach(function(c){ byKey[c.key] = c; });
     /* aim anywhere in the band, not always dead centre, so repeat plays differ */
-    var target = spec.traps[0] + Math.random() * (spec.traps[1] - spec.traps[0]);
+    var target = spec.traps[0] + RNG() * (spec.traps[1] - spec.traps[0]);
     var best = null, bestScore = Infinity;
 
     for (var n = 0; n < 1200; n++){
@@ -838,7 +892,7 @@
       if (spec.perTier){
         cats = TIER_COLORS.map(function(_, tier){
           var p = categoriesByTier(tier);
-          return p[Math.floor(Math.random() * p.length)];
+          return p[Math.floor(RNG() * p.length)];
         });
       } else if (spec.linked){
         cats = pickLinked(pool, byKey);
@@ -872,8 +926,10 @@
       best = { cats: fallback, stats: wallStats(fallback) };
     }
 
-    best.cats.forEach(function(c){ recentKeys.push(c.key); });
-    while (recentKeys.length > 16) recentKeys.shift();
+    if (!pureGen){
+      best.cats.forEach(function(c){ recentKeys.push(c.key); });
+      while (recentKeys.length > 16) recentKeys.shift();
+    }
 
     var colors = shuffle(TIER_COLORS);
     return {
@@ -885,6 +941,22 @@
         return { label: c.label, color: colors[i], tier: tierFor(c), key: c.key, items: c.items.slice() };
       })
     };
+  }
+
+  function generateDailyWall(){
+    var day = ukDateStr();
+    var savedRng = RNG, savedRecent = recentKeys;
+    RNG = seededRng("cw-daily-" + day);
+    pureGen = true;
+    recentKeys = [];
+    var wall;
+    try { wall = generateWall("mixed"); }
+    finally { RNG = savedRng; pureGen = false; recentKeys = savedRecent; }
+    wall.id = "daily-" + day;
+    wall.daily = day;
+    wall.title = "Daily Wall";
+    wall.difficulty = "Daily";
+    return wall;
   }
 
   /* ---------------- share encode/decode ---------------- */
@@ -948,6 +1020,99 @@
 
   var stats = { cats:{}, pairs:{}, walls:0, batches:[] };
   var backendUp = null;
+
+  /* ---------------- player profile ----------------
+     A player is just a display name — no password, no email. In backend mode
+     the profile and points live in the database under that name; everywhere
+     else the same record is kept on this device. */
+  var player = { name:null, points:0, played:0, won:0, streak:0, bestStreak:0, lastDaily:null, lastDailyPlayed:null };
+  var leaderboard = null;      // {players:[], daily:{day,solvers,results:[]}}
+  var leaderboardAt = 0;
+
+  function loadLocalPlayer(){
+    try { var p = JSON.parse(localStorage.getItem("cw_player") || "null"); if (p) player = p; } catch (e){}
+  }
+  function saveLocalPlayer(){
+    try { localStorage.setItem("cw_player", JSON.stringify(player)); } catch (e){}
+  }
+
+  function prevUkDay(day){
+    var d = new Date(day + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  /* device-side mirror of what the server does; authoritative copy is the
+     server's when a backend is present */
+  function applyResultLocally(rec){
+    if (rec.daily && player.lastDailyPlayed === rec.daily) return; // one daily per day counts
+    player.played++;
+    if (rec.won) player.won++;
+    player.points += rec.score || 0;
+    if (rec.daily){
+      player.lastDailyPlayed = rec.daily;
+      if (rec.won){
+        player.streak = (player.lastDaily === prevUkDay(rec.daily)) ? player.streak + 1 : 1;
+        player.lastDaily = rec.daily;
+        if (player.streak > (player.bestStreak || 0)) player.bestStreak = player.streak;
+      } else {
+        player.streak = 0;
+      }
+    }
+    saveLocalPlayer();
+  }
+
+  function submitResult(){
+    var w = play.wall;
+    var rec = {
+      name: player.name,
+      daily: w.daily || null,
+      won: !!play.won,
+      mistakes: play.mistakes,
+      hints: play.hintsUsed,
+      timeS: play.elapsed,
+      score: scoreFor()
+    };
+    applyResultLocally(rec);
+    if (storageMode === "http" && player.name){
+      apiPost("/api/result", rec).then(function(res){
+        if (res && res.player){
+          var playedFlag = player.lastDailyPlayed;  // server doesn't track this; keep ours
+          player = res.player;
+          player.name = rec.name;
+          player.lastDailyPlayed = playedFlag;
+          saveLocalPlayer();
+          var el = document.getElementById("points-readout");
+          if (el) el.textContent = player.points;
+        }
+        leaderboardAt = 0; // stale now
+      }).catch(function(){});
+    }
+  }
+
+  function syncPlayer(){
+    if (storageMode !== "http" || !player.name) return;
+    apiPost("/api/player", { name: player.name }).then(function(res){
+      if (res && res.player){
+        var nm = player.name, playedFlag = player.lastDailyPlayed;
+        player = res.player;
+        player.name = nm;
+        player.lastDailyPlayed = playedFlag;
+        saveLocalPlayer();
+        render();
+      }
+    }).catch(function(){});
+  }
+
+  function refreshLeaderboard(){
+    if (storageMode !== "http") return;
+    if (Date.now() - leaderboardAt < 60000) return;
+    leaderboardAt = Date.now();
+    apiGet("/api/leaderboard").then(function(res){
+      leaderboard = res;
+      if (view === "home") render();
+    }).catch(function(){});
+  }
 
   function blankCat(){ return { shown:0, solved:0, rankSum:0, rankN:0, hints:0 }; }
 
@@ -1209,6 +1374,7 @@
 
   function learnedPairsFor(key){
     var out = [];
+    if (pureGen) return out;
     Object.keys(stats.pairs).forEach(function(id){
       if (stats.pairs[id] < PAIR_MIN) return;
       var parts = id.split("~");
@@ -1459,6 +1625,7 @@
       play.recorded = true;
       try {
         recordPlay();
+        submitResult();
         /* a backend takes writes instantly with no reload, so send every wall;
            the artifact path batches, and with neither we keep it on-device */
         if (storageMode === "http") flushStatsRemote();
@@ -1504,18 +1671,86 @@
   }
 
   /* ---------------- render: HOME ---------------- */
+  function prettyUkDay(day){
+    try {
+      return new Intl.DateTimeFormat("en-GB", { timeZone:"Europe/London", weekday:"long", day:"numeric", month:"long" })
+        .format(new Date(day + "T12:00:00Z"));
+    } catch (e){ return day; }
+  }
+
+  function dailyTileHtml(){
+    var day = ukDateStr();
+    var done = player.lastDailyPlayed === day;
+    return (
+      '<button class="action-tile daily-tile" data-action="play-daily">' +
+        '<div class="daily-head"><span class="glyph">&#9733;</span>' +
+          '<span class="daily-date">' + esc(prettyUkDay(day)) + '</span>' +
+          (player.streak ? '<span class="streak-chip">' + player.streak + ' day streak</span>' : '') +
+        '</div>' +
+        '<h3>' + (done ? "Today\u2019s Wall \u2014 played" : "Today\u2019s Wall") + '</h3>' +
+        '<p>' + (done
+          ? "You can replay it, but only your first go counted. New wall at midnight."
+          : "The same wall for every player. Solve it to keep your streak alive.") + '</p>' +
+      '</button>'
+    );
+  }
+
+  function playerCardHtml(){
+    var inner;
+    if (storageMode === "http" && !player.name){
+      inner =
+        '<h3>Player</h3>' +
+        '<div class="code-row">' +
+          '<input type="text" id="player-name-input" maxlength="20" placeholder="Pick a name for the leaderboard&hellip;">' +
+          '<button class="btn btn-primary" data-action="save-name">Save</button>' +
+        '</div>' +
+        '<p class="form-note">No password, no email &mdash; just a name so your points and streak follow you.</p>';
+    } else {
+      var who = player.name ? esc(player.name) : "This device";
+      inner =
+        '<h3>Player</h3>' +
+        '<div class="player-row">' +
+          '<div class="player-stats">' +
+            '<strong>' + who + '</strong>' +
+            '<span class="mono" id="points-readout">' + (player.points || 0) + '</span><span class="stat-lab">pts</span>' +
+            '<span class="mono">' + (player.won || 0) + '/' + (player.played || 0) + '</span><span class="stat-lab">won</span>' +
+            '<span class="mono">' + (player.streak || 0) + '</span><span class="stat-lab">streak</span>' +
+          '</div>' +
+          (storageMode === "http" ? '<button class="btn btn-ghost btn-small" data-action="change-name">Change name</button>' : '') +
+        '</div>' +
+        leaderboardHtml();
+    }
+    return '<div class="card timer-box player-box">' + inner + '</div>';
+  }
+
+  function leaderboardHtml(){
+    if (storageMode !== "http") return '<p class="form-note">Connect this page to its server to join the shared leaderboard.</p>';
+    refreshLeaderboard();
+    if (!leaderboard || !leaderboard.players || !leaderboard.players.length){
+      return '<p class="form-note">Leaderboard: no named players yet &mdash; be the first.</p>';
+    }
+    var rows = leaderboard.players.slice(0, 5).map(function(p, i){
+      var me = player.name && p.name.toLowerCase() === player.name.toLowerCase();
+      return '<div class="lb-row' + (me ? " lb-me" : "") + '">' +
+        '<span class="lb-rank mono">' + (i + 1) + '</span>' +
+        '<span class="lb-name">' + esc(p.name) + '</span>' +
+        '<span class="lb-streak">' + (p.streak ? p.streak + "\ud83d\udd25" : "") + '</span>' +
+        '<span class="lb-pts mono">' + p.points + '</span>' +
+      '</div>';
+    }).join("");
+    var dl = leaderboard.daily && leaderboard.daily.solvers
+      ? '<p class="form-note">' + leaderboard.daily.solvers + ' player' + (leaderboard.daily.solvers === 1 ? "" : "s") + ' solved today\u2019s wall so far.</p>'
+      : "";
+    return '<div class="lb">' + rows + '</div>' + dl;
+  }
+
   function renderHome(){
     return (
       '<div class="hero">' +
         '<p class="lede">Sixteen items, four hidden connections. Play a random wall, build your own from scratch, or open a link a friend sent you.</p>' +
       '</div>' +
-      '<div class="card timer-box">' +
-        '<h3>Timer</h3>' +
-        '<div class="diff-row">' + ["none","stopwatch","180","300","600"].map(function(mode){
-          return '<button class="btn ' + (timerMode === mode ? "btn-primary" : "btn-ghost") + ' btn-small" data-action="set-timer" data-mode="' + mode + '" aria-current="' + (timerMode === mode) + '">' + TIMER_LABELS[mode] + '</button>';
-        }).join("") + '</div>' +
-        '<p class="form-note">Applies to whatever you play next &mdash; random, built, saved or shared.</p>' +
-      '</div>' +
+      dailyTileHtml() +
+      playerCardHtml() +
       '<div class="actions">' +
         '<div class="action-tile static">' +
           '<span class="glyph">&#9636;</span>' +
@@ -1540,6 +1775,13 @@
           '<p>Everything you’ve saved.</p>' +
           '<span class="count">' + library.length + ' saved</span>' +
         '</button>' +
+      '</div>' +
+      '<div class="card timer-box">' +
+        '<h3>Timer</h3>' +
+        '<div class="diff-row">' + ["none","stopwatch","180","300","600"].map(function(mode){
+          return '<button class="btn ' + (timerMode === mode ? "btn-primary" : "btn-ghost") + ' btn-small" data-action="set-timer" data-mode="' + mode + '" aria-current="' + (timerMode === mode) + '">' + TIMER_LABELS[mode] + '</button>';
+        }).join("") + '</div>' +
+        '<p class="form-note">Applies to whatever you play next &mdash; random, built, saved or shared.</p>' +
       '</div>' +
       '<div class="card code-box">' +
         '<h3>Have a link or code?</h3>' +
@@ -1570,6 +1812,63 @@
     });
   }
 
+  /* How devious is the wall being built? Same idea as generated walls: count
+     items that could belong to another group in this grid, judged against the
+     word bank's decoy map. Custom labels mean unknown categories, so this is
+     a floor, not a ceiling — hand-written misdirection it can't see. */
+  function estimateBuildTraps(groups){
+    var groupKeys = groups.map(function(g){
+      var keys = {};
+      g.items.forEach(function(item){
+        var v = (item || "").trim().toLowerCase();
+        if (!v) return;
+        (DECOY_INDEX[v] || []).forEach(function(k){ keys[k] = true; });
+      });
+      return keys;
+    });
+    var traps = 0;
+    groups.forEach(function(g, gi){
+      g.items.forEach(function(item){
+        var v = (item || "").trim().toLowerCase();
+        if (!v) return;
+        var fits = DECOY_INDEX[v] || [];
+        for (var oi = 0; oi < groups.length; oi++){
+          if (oi === gi) continue;
+          if (fits.some(function(k){ return groupKeys[oi][k]; })){ traps++; return; }
+        }
+      });
+    });
+    return traps;
+  }
+
+  function buildMeterHtml(){
+    var groups = draftGroups || emptyDraftGroups();
+    var filled = groups.reduce(function(n, g){
+      return n + g.items.filter(function(v){ return (v || "").trim(); }).length;
+    }, 0);
+    if (filled < 8){
+      return '<span class="meter-label">Difficulty meter</span><span class="meter-value">fill in more items&hellip;</span>';
+    }
+    var traps = estimateBuildTraps(groups);
+    var band = traps <= 1 ? "Easy" : traps <= 4 ? "Medium" : traps <= 7 ? "Hard" : "Genius";
+    var col = { Easy:"sage", Medium:"gold", Hard:"slate", Genius:"brick" }[band];
+    return '<span class="meter-label">Difficulty meter</span>' +
+      '<span class="meter-value">&asymp;' + traps + ' trap' + (traps === 1 ? "" : "s") +
+      ' &mdash; plays like <strong style="color:var(--' + col + ')">' + band + '</strong></span>' +
+      '<span class="meter-note">judged against the word bank; misdirection it doesn\u2019t know about counts extra</span>';
+  }
+
+  var meterTimer = null;
+  function scheduleMeterUpdate(){
+    clearTimeout(meterTimer);
+    meterTimer = setTimeout(function(){
+      if (view !== "build") return;
+      syncDraftFromDom();
+      var el = document.getElementById("build-meter");
+      if (el) el.innerHTML = buildMeterHtml();
+    }, 350);
+  }
+
   function renderBuild(){
     if (!draftGroups) draftGroups = emptyDraftGroups();
     var rows = draftGroups.map(function(g, gi){
@@ -1598,6 +1897,7 @@
         '<input type="text" id="wall-title" value="' + esc(draftTitle) + '" placeholder="Give it a name">' +
       '</div>' +
       rows +
+      '<div class="card build-meter" id="build-meter">' + buildMeterHtml() + '</div>' +
       '<p class="form-note">Sixteen items total, all different. Order them easiest to trickiest &mdash; that becomes the wall’s Easy through Genius connections. Stuck on one? Use a bank category for just that row.</p>' +
       '<div class="btn-row" style="margin-top:14px">' +
         '<button class="btn btn-primary" data-action="preview-build">Preview &amp; play</button>' +
@@ -1695,10 +1995,13 @@
             '<div><span class="num mono">' + play.hintsUsed + '</span><span class="lab">Hints</span></div>' +
             (typeof w.traps === "number" ? '<div><span class="num mono">' + w.traps + '</span><span class="lab">Traps</span></div>' : "") +
             '<div><span class="num mono">' + scoreFor() + '</span><span class="lab">Score</span></div>' +
+            '<div><span class="num mono" id="points-readout">' + (player.points || 0) + '</span><span class="lab">Total pts</span></div>' +
+            (play.wall.daily && play.won ? '<div><span class="num mono">' + (player.streak || 0) + '</span><span class="lab">Streak</span></div>' : "") +
           '</div>' +
           '<div class="end-breakdown">' + breakdown + '</div>' +
           '<div class="btn-row" style="justify-content:center">' +
-            '<button class="btn btn-primary" data-action="save-wall">Save to My Walls</button>' +
+            '<button class="btn btn-primary" data-action="copy-result">Copy result</button>' +
+            '<button class="btn btn-ghost" data-action="save-wall">Save to My Walls</button>' +
             '<button class="btn btn-ghost" data-action="share-wall">Copy share link</button>' +
             '<button class="btn btn-ghost" data-action="play-random">New random wall</button>' +
             '<button class="btn btn-ghost" data-action="go-home">Back home</button>' +
@@ -1837,6 +2140,33 @@
     return '<div class="view-header"><h2>My walls</h2></div>' + note + '<div class="wall-list">' + rows + '</div>';
   }
 
+  /* ---------------- result snippet ---------------- */
+  var COLOR_EMOJI = { sage:"\ud83d\udfe9", gold:"\ud83d\udfe8", slate:"\ud83d\udfe6", brick:"\ud83d\udfe5" };
+
+  function resultSnippet(){
+    var w = play.wall;
+    var squares = play.solvedOrder.map(function(gi){
+      return COLOR_EMOJI[w.groups[gi].color] || "\u2b1c";
+    }).join("");
+    for (var i = play.solvedOrder.length; i < 4; i++) squares += "\u2b1b";
+    var head = w.daily ? ("Connecting Wall \u2014 Daily " + w.daily)
+                       : ("Connecting Wall \u2014 " + (w.difficulty || "Custom") + ": " + w.title);
+    var line = play.won
+      ? (squares + "  " + formatTime(play.elapsed) + " \u00b7 " + play.mistakes + " wrong \u00b7 " + scoreFor() + " pts")
+      : (squares + "  beaten \u2014 " + play.solvedOrder.length + "/4 found");
+    var url = w.daily ? (location.origin + location.pathname)
+                      : shareUrlFor(w);
+    return head + "\n" + line + "\n" + url;
+  }
+
+  function copyText(text, okMsg){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ toast(okMsg); }).catch(function(){ toast("Couldn't copy \u2014 long-press to select"); });
+    } else {
+      toast("Couldn't copy \u2014 long-press to select");
+    }
+  }
+
   /* ---------------- modal ---------------- */
   function showShareModal(wall){
     var url = shareUrlFor(wall);
@@ -1914,6 +2244,27 @@
     if (action === "play-random"){
       currentWall = generateWall(t.getAttribute("data-diff") || "mixed");
       startPlay(currentWall);
+    } else if (action === "play-daily"){
+      currentWall = generateDailyWall();
+      startPlay(currentWall);
+    } else if (action === "copy-result"){
+      copyText(resultSnippet(), "Result copied — paste it anywhere");
+    } else if (action === "save-name" || action === "change-name"){
+      if (action === "change-name"){
+        player.name = null;
+        render();
+        var inp0 = document.getElementById("player-name-input");
+        if (inp0) inp0.focus();
+        return;
+      }
+      var inp = document.getElementById("player-name-input");
+      var raw = (inp ? inp.value : "").trim();
+      if (raw.length < 2){ toast("Names need at least 2 characters"); return; }
+      if (!/^[A-Za-z0-9 _-]{2,20}$/.test(raw)){ toast("Letters, numbers, spaces, - and _ only"); return; }
+      player.name = raw;
+      saveLocalPlayer();
+      syncPlayer();
+      render();
     } else if (action === "go-build"){
       draftGroups = emptyDraftGroups();
       draftTitle = "";
@@ -2014,8 +2365,19 @@
     }
   });
 
+  document.addEventListener("input", function(e){
+    if (view === "build" && e.target && e.target.matches('[data-group],[data-group-label]')){
+      scheduleMeterUpdate();
+    }
+  });
+
   document.addEventListener("keydown", function(e){
     if (e.key === "Escape") closeModal();
+    if (e.key === "Enter" && e.target && e.target.id === "player-name-input"){
+      e.preventDefault();
+      var btn = document.querySelector('[data-action="save-name"]');
+      if (btn) btn.click();
+    }
     if ((e.key === "Enter" || e.key === " ") && e.target.matches('[role="button"]')){
       e.preventDefault();
       e.target.click();
@@ -2026,9 +2388,11 @@
   function boot(){
     initLibrary();
     initStats();
+    loadLocalPlayer();
     if (BACKEND){
       storageMode = "http";
       loadRemoteState();
+      syncPlayer();
     } else if (window.claude && typeof window.claude.use === "function"){
       storageMode = "artifact";
       window.claude.use("artifact").then(function(cap){ artifactCap = cap; }).catch(function(){ artifactCap = null; });

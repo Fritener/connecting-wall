@@ -58,6 +58,26 @@ CREATE TABLE IF NOT EXISTS meta (
   k TEXT PRIMARY KEY,
   v BIGINT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS players (
+  name         TEXT PRIMARY KEY,      -- lowercased; display kept separately
+  display_name TEXT NOT NULL,
+  points       BIGINT NOT NULL DEFAULT 0,
+  played       BIGINT NOT NULL DEFAULT 0,
+  won          BIGINT NOT NULL DEFAULT 0,
+  streak       BIGINT NOT NULL DEFAULT 0,
+  best_streak  BIGINT NOT NULL DEFAULT 0,
+  last_daily   TEXT,                  -- last daily WON (YYYY-MM-DD), drives streaks
+  created      BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS daily_results (
+  day      TEXT NOT NULL,
+  name     TEXT NOT NULL,
+  won      BOOLEAN NOT NULL,
+  mistakes INTEGER NOT NULL,
+  time_s   INTEGER NOT NULL,
+  score    INTEGER NOT NULL,
+  PRIMARY KEY (day, name)
+);
 `;
 
 async function initDb() {
@@ -73,6 +93,35 @@ const MAX_COUNTER = 500;
 const MAX_CATS_PER_BATCH = 200;
 const MAX_PAIRS_PER_BATCH = 400;
 const MAX_LIBRARY = 500;
+const NAME_RE = /^[a-z0-9 _-]{2,20}$/;
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_SCORE = 1000;
+const MAX_TIME_S = 6 * 3600;
+
+function normName(raw) {
+  const display = String(raw || "").trim().slice(0, 20);
+  const key = display.toLowerCase();
+  return NAME_RE.test(key) ? { key, display } : null;
+}
+
+function ukToday() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
+}
+
+function prevDay(day) {
+  const d = new Date(day + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function profileRow(r) {
+  return {
+    name: r.display_name,
+    points: Number(r.points), played: Number(r.played), won: Number(r.won),
+    streak: Number(r.streak), bestStreak: Number(r.best_streak),
+    lastDaily: r.last_daily || null,
+  };
+}
 
 function clampInt(v, max) {
   const n = Math.floor(Number(v));
@@ -240,6 +289,113 @@ app.post("/api/walls", async (req, res) => {
     console.error("walls:", err.message);
     client.release();
     res.status(500).json({ error: "could not save walls" });
+  }
+});
+
+/* ---------- players, results, leaderboard ---------- */
+
+app.post("/api/player", async (req, res) => {
+  const nm = normName(req.body && req.body.name);
+  if (!nm) return res.status(400).json({ error: "bad name" });
+  try {
+    const r = await pool.query(
+      `INSERT INTO players (name, display_name, created) VALUES ($1,$2,$3)
+       ON CONFLICT (name) DO UPDATE SET display_name = EXCLUDED.display_name
+       RETURNING *`,
+      [nm.key, nm.display, Date.now()]
+    );
+    res.json({ player: profileRow(r.rows[0]) });
+  } catch (err) {
+    console.error("player:", err.message);
+    res.status(500).json({ error: "could not save player" });
+  }
+});
+
+app.post("/api/result", async (req, res) => {
+  const b = req.body || {};
+  const nm = normName(b.name);
+  if (!nm) return res.status(400).json({ error: "bad name" });
+  const won = !!b.won;
+  const mistakes = clampInt(b.mistakes, 10);
+  const timeS = clampInt(b.timeS, MAX_TIME_S);
+  let score = won ? clampInt(b.score, MAX_SCORE) : 0;  // no points for a lost wall
+  const today = ukToday();
+  // only today's daily counts as a daily — a stale client can't rewrite history
+  const daily = (typeof b.daily === "string" && DAY_RE.test(b.daily) && b.daily === today) ? b.daily : null;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // ensure the player exists, and lock their row for the streak update
+    await client.query(
+      `INSERT INTO players (name, display_name, created) VALUES ($1,$2,$3)
+       ON CONFLICT (name) DO NOTHING`,
+      [nm.key, nm.display, Date.now()]
+    );
+    const cur = (await client.query("SELECT * FROM players WHERE name = $1 FOR UPDATE", [nm.key])).rows[0];
+
+    let counts = true;
+    if (daily) {
+      const ins = await client.query(
+        `INSERT INTO daily_results (day, name, won, mistakes, time_s, score)
+         VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (day, name) DO NOTHING`,
+        [daily, nm.key, won, mistakes, timeS, score]
+      );
+      counts = ins.rowCount === 1;  // replays of today's daily never re-score
+    }
+
+    if (counts) {
+      let streak = Number(cur.streak);
+      let lastDaily = cur.last_daily;
+      if (daily) {
+        if (won) {
+          streak = (lastDaily === prevDay(daily)) ? streak + 1 : 1;
+          lastDaily = daily;
+        } else {
+          streak = 0;
+        }
+      }
+      const bestStreak = Math.max(Number(cur.best_streak), streak);
+      await client.query(
+        `UPDATE players SET
+           points = points + $2, played = played + 1, won = won + $3,
+           streak = $4, best_streak = $5, last_daily = $6
+         WHERE name = $1`,
+        [nm.key, score, won ? 1 : 0, streak, bestStreak, lastDaily]
+      );
+    }
+
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("result:", err.message);
+    client.release();
+    return res.status(500).json({ error: "could not save result" });
+  }
+  client.release();
+
+  try {
+    const r = await pool.query("SELECT * FROM players WHERE name = $1", [nm.key]);
+    res.json({ ok: true, player: r.rows[0] ? profileRow(r.rows[0]) : null });
+  } catch {
+    res.json({ ok: true });
+  }
+});
+
+app.get("/api/leaderboard", async (_req, res) => {
+  try {
+    const today = ukToday();
+    const [top, daily] = await Promise.all([
+      pool.query("SELECT * FROM players ORDER BY points DESC, best_streak DESC LIMIT 10"),
+      pool.query("SELECT COUNT(*) FILTER (WHERE won) AS solvers, COUNT(*) AS played FROM daily_results WHERE day = $1", [today]),
+    ]);
+    res.json({
+      players: top.rows.map(profileRow),
+      daily: { day: today, solvers: Number(daily.rows[0].solvers), played: Number(daily.rows[0].played) },
+    });
+  } catch (err) {
+    console.error("leaderboard:", err.message);
+    res.status(500).json({ error: "could not read leaderboard" });
   }
 });
 
