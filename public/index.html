@@ -131,7 +131,10 @@
   /* ---------- HOME ---------- */
   .hero{ padding:6px 2px 30px; }
   .hero p.lede{ max-width:52ch; color:var(--ink-soft); font-size:16px; line-height:1.55; margin:10px 0 0; }
-  .actions{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:26px; }
+  .actions{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:0; }
+  .random-tile{ width:100%; margin-bottom:14px; min-height:0; }
+  .tile-divider{ border-top:1px solid var(--line); margin:6px 0 2px; }
+  .inline-label{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:700; }
   @media (max-width:620px){ .actions{ grid-template-columns:1fr; } }
   .action-tile{
     text-align:left; cursor:pointer; padding:20px 18px; border-radius:10px;
@@ -1749,21 +1752,27 @@
       '<div class="hero">' +
         '<p class="lede">Sixteen items, four hidden connections. Play a random wall, build your own from scratch, or open a link a friend sent you.</p>' +
       '</div>' +
+      '<div class="action-tile static random-tile">' +
+        '<span class="glyph">&#9636;</span>' +
+        '<h3>Play a random wall</h3>' +
+        '<p>Difficulty is measured, not guessed: the generator searches for a grid with the right number of items that could belong to more than one group.</p>' +
+        '<div class="diff-row">' +
+          '<button class="btn btn-primary btn-small" data-action="play-random" data-diff="mixed">Mixed</button>' +
+          '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="easy">Easy</button>' +
+          '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="medium">Medium</button>' +
+          '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="hard">Hard</button>' +
+          '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="genius">Genius</button>' +
+        '</div>' +
+        '<div class="tile-divider"></div>' +
+        '<span class="inline-label">Timer</span>' +
+        '<div class="diff-row">' + ["none","stopwatch","180","300","600"].map(function(mode){
+          return '<button class="btn ' + (timerMode === mode ? "btn-primary" : "btn-ghost") + ' btn-small" data-action="set-timer" data-mode="' + mode + '" aria-current="' + (timerMode === mode) + '">' + TIMER_LABELS[mode] + '</button>';
+        }).join("") + '</div>' +
+        '<p class="form-note" style="margin:0">Timer applies to whatever you play next &mdash; random, daily, built, saved or shared.</p>' +
+      '</div>' +
       dailyTileHtml() +
       playerCardHtml() +
       '<div class="actions">' +
-        '<div class="action-tile static">' +
-          '<span class="glyph">&#9636;</span>' +
-          '<h3>Play a random wall</h3>' +
-          '<p>Difficulty is measured, not guessed: the generator searches for a grid with the right number of items that could belong to more than one group.</p>' +
-          '<div class="diff-row">' +
-            '<button class="btn btn-primary btn-small" data-action="play-random" data-diff="mixed">Mixed</button>' +
-            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="easy">Easy</button>' +
-            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="medium">Medium</button>' +
-            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="hard">Hard</button>' +
-            '<button class="btn btn-ghost btn-small" data-action="play-random" data-diff="genius">Genius</button>' +
-          '</div>' +
-        '</div>' +
         '<button class="action-tile" data-action="go-build">' +
           '<span class="glyph">&#9998;</span>' +
           '<h3>Build your own</h3>' +
@@ -1775,13 +1784,6 @@
           '<p>Everything you’ve saved.</p>' +
           '<span class="count">' + library.length + ' saved</span>' +
         '</button>' +
-      '</div>' +
-      '<div class="card timer-box">' +
-        '<h3>Timer</h3>' +
-        '<div class="diff-row">' + ["none","stopwatch","180","300","600"].map(function(mode){
-          return '<button class="btn ' + (timerMode === mode ? "btn-primary" : "btn-ghost") + ' btn-small" data-action="set-timer" data-mode="' + mode + '" aria-current="' + (timerMode === mode) + '">' + TIMER_LABELS[mode] + '</button>';
-        }).join("") + '</div>' +
-        '<p class="form-note">Applies to whatever you play next &mdash; random, built, saved or shared.</p>' +
       '</div>' +
       '<div class="card code-box">' +
         '<h3>Have a link or code?</h3>' +
